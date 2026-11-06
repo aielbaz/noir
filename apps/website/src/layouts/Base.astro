@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css'
+import { Font } from 'astro:assets'
 
 interface Props { title: string; description: string }
 const { title, description } = Astro.props
@@ -14,6 +15,7 @@ const ogImage = new URL('/og.png', Astro.site)
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="theme-color" content="#ffffff" />
+    <Font cssVariable="--font-figtree" preload />
     <link rel="canonical" href={canonical} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

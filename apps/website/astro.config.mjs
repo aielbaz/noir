@@ -1,4 +1,4 @@
-import { defineConfig } from 'astro/config'
+import { defineConfig, fontProviders } from 'astro/config'
 import cloudflare from '@astrojs/cloudflare'
 
 export default defineConfig({
@@ -6,4 +6,7 @@ export default defineConfig({
   adapter: cloudflare({ imageService: 'compile' }),
   // Static marketing site: no per-visitor state, so no session storage (and no KV binding).
   session: false,
+  fonts: [
+    { provider: fontProviders.fontsource(), name: 'Figtree', cssVariable: '--font-figtree', weights: ['300 900'], styles: ['normal'], subsets: ['latin'] },
+  ],
 })

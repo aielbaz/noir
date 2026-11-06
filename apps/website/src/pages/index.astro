@@ -4,33 +4,35 @@ import SiteHeader from '../components/SiteHeader.astro'
 import SiteFooter from '../components/SiteFooter.astro'
 import TvFrame from '../components/TvFrame.astro'
 import Crop from '../components/Crop.astro'
+import login from '../assets/screens/login.png'
+import home from '../assets/screens/home.png'
 import homeRows from '../assets/screens/home-rows.png'
 import movies from '../assets/screens/movies.png'
 import seriesList from '../assets/screens/series-list.png'
 import liveTv from '../assets/screens/live-tv.png'
 import player from '../assets/screens/player.png'
 import seriesDetails from '../assets/screens/series-details.png'
-import settings from '../assets/screens/settings.png'
+import settingsHome from '../assets/screens/settings-home.png'
 import movieDetails from '../assets/screens/movie-details.png'
 
 const captions = [
   ['Made for your remote', 'Everything works with the arrow buttons and OK. Pointing with the Magic Remote works too.'],
-  ['Fast with big libraries', 'Noir remembers your lists, so even very large ones open and scroll smoothly.'],
-  ['A banner that waits', 'New titles rotate on Home, and pause while you move through the menu.'],
+  ['Smooth by design', 'Scroll through large lists smoothly, without lagging.'],
+  ['Always something new', 'The Home banner shows the newest titles in your library.'],
 ]
 
 const tiles = [
   { cls: 'wide', figure: 'skip', title: 'Skip ahead, fast.', text: 'Hold the button to skip forward. The longer you hold, the faster it goes.' },
   { cls: 'tall', figure: '1.5×', title: 'Your speed.', text: 'Watch faster or slower, and keep your favourite as the default.' },
-  { cls: '', figure: '−1:17', title: 'Time left, or time in.', text: 'Switch the clock between time watched and time left.' },
-  { cls: '', figure: 'Ends 10:42', title: 'Know when it ends.', text: 'The finish time, in your local time.' },
-  { cls: '', figure: '3.22 GB', title: 'Know the size.', text: 'See how big the video is, right in the player.' },
+  { cls: '', figure: '−6:35', title: 'Time left, or time in.', text: 'Switch the clock between time watched and time left.' },
+  { cls: '', figure: '10:49 AM', title: 'Know when it ends.', text: 'The finish time, in your local time.' },
+  { cls: '', figure: '2.59 GB', title: 'Know the size.', text: 'See how big the video is, right in the player.' },
 ]
 
 const cards = [
   { img: homeRows, alt: 'Continue watching cards with progress bars and minutes left', width: '200%', left: '-12%', top: '0', title: 'Never lose your place.', text: 'Progress is saved while you watch, with minutes left on every card.' },
   { img: seriesDetails, alt: 'Episode list with the first episode marked Up next', width: '200%', left: '-12%', top: '-22%', title: 'Binge, hands free.', text: 'Autoplay starts the next episode, and an Up next card shows what’s coming.' },
-  { img: settings, alt: 'Playback settings: autoplay next episode, up next card and default speed', width: '200%', left: '-10%', top: '-66%', title: 'Make it yours.', text: 'Choose what’s on your Home screen, how lists are sorted, your playback speed and more.' },
+  { img: settingsHome, alt: 'Settings: Home banner, Home lists and default order for choosing what appears on Home', width: '100%', left: '0', top: '0', title: 'Make it yours.', text: 'Choose what’s on your Home screen, how lists are sorted, your playback speed and more.' },
   { img: movieDetails, alt: 'Movie details with Play and My list buttons', width: '220%', left: '-10%', top: '-54%', title: 'Save it for later.', text: 'Hold OK on any title to add it to My list.' },
   { img: movies, alt: 'Movies screen with the sort button and the Search all movies field above the posters', width: '200%', left: '-100%', top: '0', title: 'Find it fast.', text: 'Search and sort every list, across Live TV, movies and shows.' },
   { audio: true, title: 'Your language.', text: 'When a video has more than one audio track, switch between them as you watch.' },
@@ -45,8 +47,8 @@ const steps = [
 const faq = [
   ['Does Noir include channels or movies?', 'No. Noir is the app you watch with. The channels and movies come from your own TV subscription, which you sign in to.'],
   ['What kind of subscription do I need?', 'One that gives you an Xtream Codes login: a server address, a username and a password. Your provider can tell you if you’re not sure.'],
-  ['Which TVs does it work on?', 'LG smart TVs running webOS [SUPPORTED VERSIONS].'],
-  ['Is Noir free?', '[PRICE]'],
+  ['Which TVs does it work on?', 'LG smart TVs running webOS.'],
+  ['Is Noir free?', 'Yes. Noir is free.'],
   ['Is my login safe?', 'Your sign-in details are stored on your TV and used only to connect to the server you enter. There’s no Noir account and no Noir server. Signing out clears everything.'],
   ['Will my videos play?', 'Noir plays the common streaming and video formats (HLS, MP4 and MKV). Subtitles built into MKV files may not show, depending on the TV.'],
   ['Does it work with the Magic Remote?', 'Yes. You can point and click, and scroll with the wheel. The regular arrow buttons work everywhere too.'],
@@ -56,46 +58,59 @@ const faq = [
   title="Noir — IPTV player for LG webOS TVs"
   description="A calm, fast IPTV player for LG webOS TVs. Sign in with your own Xtream Codes subscription. Coming soon."
 >
+  <div class="stage">
   <SiteHeader />
-  <main id="main">
-    <div class="hero">
-      <p class="eyebrow load">For LG smart TVs</p>
-      <h1 class="hero-title load d1"><span class="dim">Lights off.</span> <span class="name">noir</span> <span class="dim">on.</span></h1>
-      <p class="subline load d2">A calm, fast way to watch your TV subscription. Sign in with the login you already have, and press play.</p>
-      <div class="actions load d3">
+    <div class="hero" id="main" tabindex="-1">
+      <h1 class="hero-title"><span class="dim">Lights off.</span> <span class="lit"><span class="name">noir</span> on.</span></h1>
+      <p class="subline">A calm, fast way to watch your TV subscription. Sign in with the login you already have, and press play.</p>
+      <div class="actions">
         <a class="btn" href="#player">See the player</a>
         <a class="link" href="#ui">Learn more →</a>
       </div>
-      <TvFrame class="tv load d4" src={homeRows} priority sizes="(max-width: 1128px) 100vw, 1080px"
-        alt="Noir home screen: a Continue watching row with progress bars above a row of colourful movie posters" />
+      <div class="hero-art" aria-hidden="false">
+        <TvFrame src={home} priority sizes="(max-width: 900px) 100vw, 60vw"
+          alt="Noir home screen: a large banner for a new title with a Watch now button, above a Continue watching row" />
+      </div>
     </div>
-
+  </div>
+  <main>
     <section id="ui" class="center">
-      <div class="container reveal">
+      <div class="container">
         <h2 class="title">The experience you always wanted.</h2>
         <p class="subline">Live TV, movies and shows, easy to browse and search. Calm, dark and simple to use.</p>
       </div>
-      <div class="block-gap reveal">
-        <div class="fan">
-          <TvFrame class="side l" src={movies} sizes="(max-width: 900px) 100vw, 450px" alt="Movies screen with categories and a grid of posters" />
-          <TvFrame class="mid" src={seriesList} sizes="(max-width: 900px) 100vw, 520px" alt="TV shows screen with categories and a grid of series posters" />
-          <TvFrame class="side r" src={liveTv} sizes="(max-width: 900px) 100vw, 450px" alt="Live TV screen with channel categories and channel tiles" />
-        </div>
-        <div class="cols3 container">
-          {captions.map(([t, p]) => <div><h3>{t}</h3><p>{p}</p></div>)}
-        </div>
+      <div class="scenes">
+        <article class="scene">
+          <div class="text"><h3>Live TV</h3><p>See what’s on now and what’s next, right on the channel.</p></div>
+          <Crop class="shot" src={liveTv} alt="Live TV screen with the News category, channel tiles and a Now and Next line" width="150%" left="-12%" top="0" aspect="16 / 10" />
+        </article>
+        <article class="scene">
+          <div class="text"><h3>Movies</h3><p>Browse by category, with posters and ratings.</p></div>
+          <Crop class="shot" src={movies} alt="Movies screen with categories and a grid of posters" width="150%" left="-12%" top="0" aspect="16 / 10" />
+        </article>
+        <article class="scene">
+          <div class="text"><h3>TV shows</h3><p>Open a series and pick any episode.</p></div>
+          <Crop class="shot" src={seriesList} alt="TV shows screen with categories and a grid of series posters" width="150%" left="-12%" top="0" aspect="16 / 10" />
+        </article>
+        <article class="scene wide">
+          <div class="text"><h3>Search and sort</h3><p>Look through every list at once, and sort it the way you like.</p></div>
+          <Crop class="shot" src={movies} alt="The sort button and the Search all movies field" width="200%" left="-112%" top="-3%" aspect="16 / 6" sizes="(max-width: 900px) 380vw, 1300px" />
+        </article>
+      </div>
+      <div class="cols3 container">
+        {captions.map(([t, p]) => <div><h3>{t}</h3><p>{p}</p></div>)}
       </div>
     </section>
 
     <section id="player" class="center">
-      <div class="container reveal">
+      <div class="container">
         <h2 class="title">A player that works.</h2>
         <p class="subline">Everything you reach for while watching, one press away.</p>
       </div>
-      <div class="container reveal" style="padding: 0">
+      <div class="container" style="padding: 0">
         <Crop class="bar-crop" src={player} alt="Player controls: file size, title, elapsed and total time, end time, ten-second skips, pause, speed and subtitles" width="100%" left="0" top="-158%" aspect="1920 / 420" />
       </div>
-      <div class="tiles reveal">
+      <div class="tiles">
         {tiles.map(t => (
           <div class:list={['tile', t.cls]}>
             <div class="figure" aria-hidden="true">
@@ -108,13 +123,13 @@ const faq = [
     </section>
 
     <section id="details" class="center">
-      <div class="container reveal">
+      <div class="container">
         <h2 class="title">The little things.</h2>
         <p class="subline">Small touches that make an evening of watching easier.</p>
       </div>
       <div class="cards">
         {cards.map(c => (
-          <article class="card reveal">
+          <article class="card">
             {c.audio ? (
               <div class="frame audio-panel" aria-hidden="true">
                 <span class="word">Audio</span>
@@ -130,20 +145,34 @@ const faq = [
     </section>
 
     <section id="setup" class="center">
-      <div class="container reveal">
+      <div class="container">
         <h2 class="title">Three steps to the sofa.</h2>
         <p class="subline">All you need is an LG smart TV and the login from your TV subscription.</p>
       </div>
-      <ol class="steps container reveal">
+      <ol class="sofa">
         {steps.map(([t, p], i) => (
-          <li><span class="num" class:list={{ last: i === 2 }} aria-hidden="true">{i + 1}</span><h3>{t}</h3><p>{p}</p></li>
+          <li>
+            <div class="visual" aria-hidden="true">
+              {i === 0 && (
+                <div class="store-tile">
+                  <span class="app-icon small">noir</span>
+                  <span class="name">Noir<small>Video player</small></span>
+                  <span class="get">Get</span>
+                </div>
+              )}
+              {i === 1 && <Crop class="vis" src={login} alt="" width="150%" left="-25%" top="-17%" aspect="16 / 10" sizes="(max-width: 900px) 200vw, 640px" />}
+              {i === 2 && <Crop class="vis" src={home} alt="" width="112%" left="0" top="0" aspect="16 / 10" sizes="(max-width: 900px) 200vw, 640px" />}
+            </div>
+            <div class="rail"><span class="dot" class:list={{ last: i === 2 }}>{i + 1}</span></div>
+            <h3>{t}</h3><p>{p}</p>
+          </li>
         ))}
       </ol>
     </section>
 
     <section id="faq" class="center">
-      <div class="container reveal"><h2 class="title">Questions.</h2></div>
-      <div class="faq reveal">
+      <div class="container"><h2 class="title">Questions.</h2></div>
+      <div class="faq">
         {faq.map(([q, a]) => (
           <details>
             <summary>{q}<span class="plus" aria-hidden="true">+</span></summary>
@@ -154,7 +183,7 @@ const faq = [
     </section>
 
     <section id="get">
-      <div class="inner reveal">
+      <div class="inner">
         <div class="app-icon" aria-hidden="true">noir</div>
         <h2 class="title">Coming to LG webOS.</h2>
         <p>Noir doesn’t come with channels or movies. You watch with the TV subscription you already have.</p>
