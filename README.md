@@ -9,7 +9,7 @@ Website: https://noir.aielbaz.com. The screenshots use invented demo content.
 ```
 apps/tv           The webOS app (React + Vite). Packaged as an .ipk.
 apps/website      noir.aielbaz.com (Astro, deployed to Cloudflare).
-tools/demo-server Fake Xtream server with invented content, for screenshots and store review.
+apps/demo         Demo Xtream server (Cloudflare Worker) with invented content, for screenshots and store review.
 assets/           Brand files (assets/brand) and LG Content Store listing material (assets/store).
 ```
 
@@ -26,9 +26,9 @@ pnpm install
 | `pnpm tv:package` | Build and create `apps/tv/build/com.aielbaz.noir_<version>_all.ipk` |
 | `pnpm site:dev` / `site:build` | Run or build the website |
 | `pnpm site:deploy` | Build and deploy the website with wrangler |
-| `pnpm demo` | Start the demo server on port 8089 (login: demo / demo) |
+| `pnpm demo` / `demo:deploy` | Run or deploy the demo server (login: demo / demo) |
 
-See `apps/tv/README.md` for installing on a TV and `tools/demo-server/README.md` for the demo server.
+See `apps/tv/README.md` for installing on a TV and `apps/demo/README.md` for the demo server.
 
 ## License
 

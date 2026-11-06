@@ -5,11 +5,11 @@ App id: `com.aielbaz.noir` · Version 1.0.0 · Resolution 1920×1080
 Noir is a player. It has no content of its own and needs an Xtream Codes login.
 
 **Test login for reviewers**
-- Server: [public address of the demo server, to be added: run `tools/demo-server/` on a public host]
+- Server: https://demo.aielbaz.com
 - Username: demo
 - Password: demo
 
-The demo catalogue is invented. Movies and episodes play a short sample clip (90 seconds); live channels play public test streams.
+The demo catalogue is invented. Movies and episodes play open-licensed sample clips (Sintel trailer and Big Buck Bunny, © Blender Foundation, CC BY 3.0); live channels play public test streams. The titles and videos do not match, as this is a demo.
 
 ## How to use the app
 

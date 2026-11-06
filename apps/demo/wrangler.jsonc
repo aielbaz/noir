@@ -1,0 +1,9 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "noir-demo",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-01",
+  // Artwork is served straight from the static assets (free, no Worker run).
+  "assets": { "directory": "./public" },
+  "routes": [{ "pattern": "demo.aielbaz.com", "custom_domain": true }]
+}

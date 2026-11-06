@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Generates the demo catalogue (data.json) and its artwork (art/*.jpg).
+"""Generates the demo catalogue (src/data.json) and its artwork (public/art/*.jpg).
 Everything is invented: titles, people, plots and pictures. Nothing is taken from a real film or channel."""
 import json, os, subprocess, random, textwrap, time
 
 random.seed(7)
 HERE = os.path.dirname(os.path.abspath(__file__))
-ART = os.path.join(HERE, 'art')
+ART = os.path.join(HERE, 'public', 'art')
 os.makedirs(ART, exist_ok=True)
 FONT = 'DejaVu-Sans-Bold'
 
@@ -131,5 +131,5 @@ for cid, cname, names in LIVE_CATS:
         data['live'].append({'num': n, 'name': t, 'stream_type': 'live', 'stream_id': 3000 + n, 'stream_icon': f'@art/{slug}.jpg',
                              'epg_channel_id': f'noir.{n}', 'added': str(now - 1000000), 'category_id': cid, 'tv_archive': 0})
 
-json.dump(data, open(os.path.join(HERE, 'data.json'), 'w'), ensure_ascii=False, indent=1)
+json.dump(data, open(os.path.join(HERE, 'src', 'data.json'), 'w'), ensure_ascii=False, indent=1)
 print('movies', len(data['movies']), 'series', len(data['series']), 'live', len(data['live']), 'art files', len(os.listdir(ART)))
