@@ -8,5 +8,5 @@
     "directory": "./dist"
   },
   "routes": [{ "pattern": "noir.aielbaz.com", "custom_domain": true }],
-  "observability": { "enabled": true }
+  "observability": { "enabled": false }
 }
