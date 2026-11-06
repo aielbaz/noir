@@ -1,6 +1,6 @@
 # Noir privacy policy
 
-Last updated: 2026-11-04
+Last updated: 6 November 2026
 
 Noir ("the app") is a media player for LG webOS TVs. This policy explains what the app does with information. In short: it does not collect your data, and nothing you enter in the app is sent to us.
 
@@ -37,4 +37,4 @@ If this policy changes, the new version will be published at this address with a
 
 ## Contact
 
-Questions about this policy: [fill in your support email]
+Questions about this policy: https://aielbaz.com
