@@ -2,6 +2,10 @@
 
 An IPTV player for LG webOS TVs (Xtream Codes), plus its website.
 
+![Noir home screen](store/screenshots/1-home.png)
+
+Website: https://noir.aielbaz.com. The screenshots use invented demo content.
+
 ```
 apps/tv           The webOS app (React + Vite). Packaged as an .ipk.
 apps/website      noir.aielbaz.com (Astro, deployed to Cloudflare).
@@ -26,3 +30,9 @@ pnpm install
 | `pnpm demo` | Start the demo server on port 8089 (login: demo / demo) |
 
 See `apps/tv/README.md` for installing on a TV and `tools/demo-server/README.md` for the demo server.
+
+## License
+
+[PolyForm Noncommercial 1.0.0](LICENSE). You can read, run and change the code for personal, educational and other noncommercial use. You may not use it commercially. This is a source-available licence, not an open-source one.
+
+Noir doesn't include or provide any content. LG and webOS are trademarks of LG Electronics Inc.

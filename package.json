@@ -2,6 +2,7 @@
   "name": "noir",
   "private": true,
   "packageManager": "pnpm@10.18.2",
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "tv:dev": "pnpm --filter noir-tv dev",
     "tv:build": "pnpm --filter noir-tv build",
