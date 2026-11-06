@@ -9,7 +9,7 @@
     "tv:lint": "pnpm --filter noir-tv lint",
     "site:dev": "pnpm --filter noir-website dev",
     "site:build": "pnpm --filter noir-website build",
-    "site:deploy": "pnpm --filter noir-website deploy",
+    "site:deploy": "pnpm --filter noir-website run cf:deploy",
     "demo": "node tools/demo-server/server.mjs 8089"
   }
 }
