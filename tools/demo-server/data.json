@@ -1,0 +1,986 @@
+{
+ "movie_cats": [
+  {
+   "category_id": "101",
+   "category_name": "Featured 2026",
+   "parent_id": 0
+  },
+  {
+   "category_id": "102",
+   "category_name": "Action",
+   "parent_id": 0
+  },
+  {
+   "category_id": "103",
+   "category_name": "Drama & Thriller",
+   "parent_id": 0
+  },
+  {
+   "category_id": "104",
+   "category_name": "Family",
+   "parent_id": 0
+  }
+ ],
+ "movies": [
+  {
+   "num": 1,
+   "name": "Midnight Harbor",
+   "stream_type": "movie",
+   "stream_id": 1001,
+   "stream_icon": "@art/m1.jpg",
+   "rating": "7.6",
+   "added": "1793688246",
+   "category_id": "101",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "When a small coastal town loses power for a week, neighbours discover what they really owe each other.",
+    "genre": "Thriller / Family",
+    "cast": "Tomas Tanaka, Samira Ibarra, Idris Tanaka, Elise Ibarra",
+    "director": "Jonas Lindqvist",
+    "year": "2026",
+    "mins": 108,
+    "bitrate": 3200,
+    "backdrop": "@art/m1_bd.jpg"
+   }
+  },
+  {
+   "num": 2,
+   "name": "The Last Lantern",
+   "stream_type": "movie",
+   "stream_id": 1002,
+   "stream_icon": "@art/m2.jpg",
+   "rating": "6.6",
+   "added": "1793601846",
+   "category_id": "101",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "Two rival cartographers race across a continent to map a place that does not want to be found.",
+    "genre": "Crime / Drama",
+    "cast": "Nora Valdez, Caleb Sato, Aiko Valdez, Jonas Sato",
+    "director": "Nora Okafor",
+    "year": "2026",
+    "mins": 134,
+    "bitrate": 3200,
+    "backdrop": "@art/m2_bd.jpg"
+   }
+  },
+  {
+   "num": 3,
+   "name": "Paper Skies",
+   "stream_type": "movie",
+   "stream_id": 1003,
+   "stream_icon": "@art/m3.jpg",
+   "rating": "5.7",
+   "added": "1793515446",
+   "category_id": "101",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "A night-shift nurse notices the same stranger at every ward she covers, and begins to ask why.",
+    "genre": "Mystery / Action",
+    "cast": "Dario Brennan, Maya Whitlock, Kofi Brennan, Yara Whitlock",
+    "director": "Idris Hartwell",
+    "year": "2026",
+    "mins": 119,
+    "bitrate": 4200,
+    "backdrop": "@art/m3_bd.jpg"
+   }
+  },
+  {
+   "num": 4,
+   "name": "Velvet Static",
+   "stream_type": "movie",
+   "stream_id": 1004,
+   "stream_icon": "@art/m4.jpg",
+   "rating": "7.3",
+   "added": "1793429046",
+   "category_id": "101",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "An engineer inherits her grandfather’s workshop and a machine nobody has ever seen switched on.",
+    "genre": "Mystery / Drama",
+    "cast": "Priya Haddad, Tomas Hartwell, Samira Haddad, Idris Hartwell",
+    "director": "Priya Whitlock",
+    "year": "2026",
+    "mins": 94,
+    "bitrate": 3200,
+    "backdrop": "@art/m4_bd.jpg"
+   }
+  },
+  {
+   "num": 5,
+   "name": "Ash & Ember",
+   "stream_type": "movie",
+   "stream_id": 1005,
+   "stream_icon": "@art/m5.jpg",
+   "rating": "8.6",
+   "added": "1793342646",
+   "category_id": "101",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "A quiet courier is drawn into a chain of favours that stretches across a single, very long night.",
+    "genre": "Romance / Drama",
+    "cast": "Felix Novak, Nora Okafor, Caleb Novak, Aiko Okafor",
+    "director": "Kofi Sato",
+    "year": "2026",
+    "mins": 134,
+    "bitrate": 5600,
+    "backdrop": "@art/m5_bd.jpg"
+   }
+  },
+  {
+   "num": 6,
+   "name": "North of Nowhere",
+   "stream_type": "movie",
+   "stream_id": 1006,
+   "stream_icon": "@art/m6.jpg",
+   "rating": "7.4",
+   "added": "1793256246",
+   "category_id": "101",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "A family restores a failing lighthouse and uncovers the logbooks of everyone who kept it before them.",
+    "genre": "Romance / Action",
+    "cast": "Lena Castellan, Dario Lindqvist, Maya Castellan, Kofi Lindqvist",
+    "director": "Lena Ibarra",
+    "year": "2026",
+    "mins": 126,
+    "bitrate": 4200,
+    "backdrop": "@art/m6_bd.jpg"
+   }
+  },
+  {
+   "num": 7,
+   "name": "Quiet Machines",
+   "stream_type": "movie",
+   "stream_id": 1007,
+   "stream_icon": "@art/m7.jpg",
+   "rating": "7.3",
+   "added": "1793169846",
+   "category_id": "101",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "In a city that never stops raining, an archivist starts erasing the wrong records.",
+    "genre": "Mystery / Action",
+    "cast": "Rafael Rhodes, Priya Moreau, Tomas Rhodes, Samira Moreau",
+    "director": "Caleb Rhodes",
+    "year": "2026",
+    "mins": 94,
+    "bitrate": 3200,
+    "backdrop": "@art/m7_bd.jpg"
+   }
+  },
+  {
+   "num": 8,
+   "name": "Saltwater Hearts",
+   "stream_type": "movie",
+   "stream_id": 1008,
+   "stream_icon": "@art/m8.jpg",
+   "rating": "7.2",
+   "added": "1793083446",
+   "category_id": "101",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "A retired pilot takes one last job and finds the cargo is not what she was promised.",
+    "genre": "Family / Thriller",
+    "cast": "Elise Ibarra, Felix Tanaka, Nora Ibarra, Caleb Tanaka",
+    "director": "Elise Castellan",
+    "year": "2026",
+    "mins": 108,
+    "bitrate": 5600,
+    "backdrop": "@art/m8_bd.jpg"
+   }
+  },
+  {
+   "num": 9,
+   "name": "Redline Protocol",
+   "stream_type": "movie",
+   "stream_id": 1009,
+   "stream_icon": "@art/m9.jpg",
+   "rating": "5.8",
+   "added": "1792997046",
+   "category_id": "102",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "When a small coastal town loses power for a week, neighbours discover what they really owe each other.",
+    "genre": "Crime / Thriller",
+    "cast": "Jonas Sato, Lena Valdez, Dario Sato, Maya Valdez",
+    "director": "Tomas Novak",
+    "year": "2026",
+    "mins": 108,
+    "bitrate": 5600,
+    "backdrop": "@art/m9_bd.jpg"
+   }
+  },
+  {
+   "num": 10,
+   "name": "Iron Meridian",
+   "stream_type": "movie",
+   "stream_id": 1010,
+   "stream_icon": "@art/m10.jpg",
+   "rating": "5.7",
+   "added": "1792910646",
+   "category_id": "102",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "Two rival cartographers race across a continent to map a place that does not want to be found.",
+    "genre": "Mystery / Comedy",
+    "cast": "Yara Whitlock, Rafael Brennan, Priya Whitlock, Tomas Brennan",
+    "director": "Yara Haddad",
+    "year": "2026",
+    "mins": 126,
+    "bitrate": 5600,
+    "backdrop": "@art/m10_bd.jpg"
+   }
+  },
+  {
+   "num": 11,
+   "name": "Dust Runner",
+   "stream_type": "movie",
+   "stream_id": 1011,
+   "stream_icon": "@art/m11.jpg",
+   "rating": "7.5",
+   "added": "1792824246",
+   "category_id": "102",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "A night-shift nurse notices the same stranger at every ward she covers, and begins to ask why.",
+    "genre": "Romance / Action",
+    "cast": "Idris Hartwell, Elise Haddad, Felix Hartwell, Nora Haddad",
+    "director": "Dario Brennan",
+    "year": "2026",
+    "mins": 94,
+    "bitrate": 4200,
+    "backdrop": "@art/m11_bd.jpg"
+   }
+  },
+  {
+   "num": 12,
+   "name": "Black Tide",
+   "stream_type": "movie",
+   "stream_id": 1012,
+   "stream_icon": "@art/m12.jpg",
+   "rating": "8.0",
+   "added": "1792737846",
+   "category_id": "102",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "An engineer inherits her grandfather’s workshop and a machine nobody has ever seen switched on.",
+    "genre": "Crime / Family",
+    "cast": "Aiko Okafor, Jonas Novak, Lena Okafor, Dario Novak",
+    "director": "Aiko Valdez",
+    "year": "2026",
+    "mins": 126,
+    "bitrate": 4200,
+    "backdrop": "@art/m12_bd.jpg"
+   }
+  },
+  {
+   "num": 13,
+   "name": "Hard Reset",
+   "stream_type": "movie",
+   "stream_id": 1013,
+   "stream_icon": "@art/m13.jpg",
+   "rating": "6.4",
+   "added": "1792651446",
+   "category_id": "102",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "A quiet courier is drawn into a chain of favours that stretches across a single, very long night.",
+    "genre": "Sci-Fi / Comedy",
+    "cast": "Kofi Lindqvist, Yara Castellan, Rafael Lindqvist, Priya Castellan",
+    "director": "Felix Tanaka",
+    "year": "2026",
+    "mins": 119,
+    "bitrate": 3200,
+    "backdrop": "@art/m13_bd.jpg"
+   }
+  },
+  {
+   "num": 14,
+   "name": "Vector Zero",
+   "stream_type": "movie",
+   "stream_id": 1014,
+   "stream_icon": "@art/m14.jpg",
+   "rating": "7.4",
+   "added": "1792565046",
+   "category_id": "102",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "A family restores a failing lighthouse and uncovers the logbooks of everyone who kept it before them.",
+    "genre": "Mystery / Drama",
+    "cast": "Samira Moreau, Idris Rhodes, Elise Moreau, Felix Rhodes",
+    "director": "Samira Moreau",
+    "year": "2026",
+    "mins": 126,
+    "bitrate": 5600,
+    "backdrop": "@art/m14_bd.jpg"
+   }
+  },
+  {
+   "num": 15,
+   "name": "The Glass Garden",
+   "stream_type": "movie",
+   "stream_id": 1015,
+   "stream_icon": "@art/m15.jpg",
+   "rating": "6.4",
+   "added": "1792478646",
+   "category_id": "103",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "In a city that never stops raining, an archivist starts erasing the wrong records.",
+    "genre": "Comedy / Sci-Fi",
+    "cast": "Caleb Tanaka, Aiko Ibarra, Jonas Tanaka, Lena Ibarra",
+    "director": "Rafael Lindqvist",
+    "year": "2026",
+    "mins": 112,
+    "bitrate": 3200,
+    "backdrop": "@art/m15_bd.jpg"
+   }
+  },
+  {
+   "num": 16,
+   "name": "Winter Ledger",
+   "stream_type": "movie",
+   "stream_id": 1016,
+   "stream_icon": "@art/m16.jpg",
+   "rating": "6.0",
+   "added": "1792392246",
+   "category_id": "103",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "A retired pilot takes one last job and finds the cargo is not what she was promised.",
+    "genre": "Crime / Family",
+    "cast": "Maya Valdez, Kofi Sato, Yara Valdez, Rafael Sato",
+    "director": "Maya Okafor",
+    "year": "2026",
+    "mins": 94,
+    "bitrate": 4200,
+    "backdrop": "@art/m16_bd.jpg"
+   }
+  },
+  {
+   "num": 17,
+   "name": "Echoes of Marlow",
+   "stream_type": "movie",
+   "stream_id": 1017,
+   "stream_icon": "@art/m17.jpg",
+   "rating": "5.5",
+   "added": "1792305846",
+   "category_id": "103",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "When a small coastal town loses power for a week, neighbours discover what they really owe each other.",
+    "genre": "Sci-Fi / Family",
+    "cast": "Tomas Brennan, Samira Whitlock, Idris Brennan, Elise Whitlock",
+    "director": "Jonas Hartwell",
+    "year": "2026",
+    "mins": 101,
+    "bitrate": 5600,
+    "backdrop": "@art/m17_bd.jpg"
+   }
+  },
+  {
+   "num": 18,
+   "name": "Small Hours",
+   "stream_type": "movie",
+   "stream_id": 1018,
+   "stream_icon": "@art/m18.jpg",
+   "rating": "6.6",
+   "added": "1792219446",
+   "category_id": "103",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "Two rival cartographers race across a continent to map a place that does not want to be found.",
+    "genre": "Crime / Comedy",
+    "cast": "Nora Haddad, Caleb Hartwell, Aiko Haddad, Jonas Hartwell",
+    "director": "Nora Whitlock",
+    "year": "2026",
+    "mins": 94,
+    "bitrate": 4200,
+    "backdrop": "@art/m18_bd.jpg"
+   }
+  },
+  {
+   "num": 19,
+   "name": "A Quiet Verdict",
+   "stream_type": "movie",
+   "stream_id": 1019,
+   "stream_icon": "@art/m19.jpg",
+   "rating": "5.6",
+   "added": "1792133046",
+   "category_id": "103",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "A night-shift nurse notices the same stranger at every ward she covers, and begins to ask why.",
+    "genre": "Sci-Fi / Romance",
+    "cast": "Dario Novak, Maya Okafor, Kofi Novak, Yara Okafor",
+    "director": "Idris Sato",
+    "year": "2026",
+    "mins": 119,
+    "bitrate": 3200,
+    "backdrop": "@art/m19_bd.jpg"
+   }
+  },
+  {
+   "num": 20,
+   "name": "Harbor Lights",
+   "stream_type": "movie",
+   "stream_id": 1020,
+   "stream_icon": "@art/m20.jpg",
+   "rating": "5.6",
+   "added": "1792046646",
+   "category_id": "103",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "An engineer inherits her grandfather’s workshop and a machine nobody has ever seen switched on.",
+    "genre": "Sci-Fi / Drama",
+    "cast": "Priya Castellan, Tomas Lindqvist, Samira Castellan, Idris Lindqvist",
+    "director": "Priya Ibarra",
+    "year": "2026",
+    "mins": 108,
+    "bitrate": 5600,
+    "backdrop": "@art/m20_bd.jpg"
+   }
+  },
+  {
+   "num": 21,
+   "name": "Pip and the Moon Train",
+   "stream_type": "movie",
+   "stream_id": 1021,
+   "stream_icon": "@art/m21.jpg",
+   "rating": "6.4",
+   "added": "1791960246",
+   "category_id": "104",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "A quiet courier is drawn into a chain of favours that stretches across a single, very long night.",
+    "genre": "Romance / Sci-Fi",
+    "cast": "Felix Rhodes, Nora Moreau, Caleb Rhodes, Aiko Moreau",
+    "director": "Kofi Rhodes",
+    "year": "2026",
+    "mins": 108,
+    "bitrate": 4200,
+    "backdrop": "@art/m21_bd.jpg"
+   }
+  },
+  {
+   "num": 22,
+   "name": "Bramble Hollow",
+   "stream_type": "movie",
+   "stream_id": 1022,
+   "stream_icon": "@art/m22.jpg",
+   "rating": "8.6",
+   "added": "1791873846",
+   "category_id": "104",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "A family restores a failing lighthouse and uncovers the logbooks of everyone who kept it before them.",
+    "genre": "Comedy / Action",
+    "cast": "Lena Ibarra, Dario Tanaka, Maya Ibarra, Kofi Tanaka",
+    "director": "Lena Castellan",
+    "year": "2026",
+    "mins": 126,
+    "bitrate": 4200,
+    "backdrop": "@art/m22_bd.jpg"
+   }
+  },
+  {
+   "num": 23,
+   "name": "The Cloud Cartographer",
+   "stream_type": "movie",
+   "stream_id": 1023,
+   "stream_icon": "@art/m23.jpg",
+   "rating": "7.1",
+   "added": "1791787446",
+   "category_id": "104",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "In a city that never stops raining, an archivist starts erasing the wrong records.",
+    "genre": "Romance / Drama",
+    "cast": "Rafael Sato, Priya Valdez, Tomas Sato, Samira Valdez",
+    "director": "Caleb Novak",
+    "year": "2026",
+    "mins": 101,
+    "bitrate": 3200,
+    "backdrop": "@art/m23_bd.jpg"
+   }
+  },
+  {
+   "num": 24,
+   "name": "Captain Biscuit",
+   "stream_type": "movie",
+   "stream_id": 1024,
+   "stream_icon": "@art/m24.jpg",
+   "rating": "7.9",
+   "added": "1791701046",
+   "category_id": "104",
+   "container_extension": "mp4",
+   "_info": {
+    "plot": "A retired pilot takes one last job and finds the cargo is not what she was promised.",
+    "genre": "Adventure / Thriller",
+    "cast": "Elise Whitlock, Felix Brennan, Nora Whitlock, Caleb Brennan",
+    "director": "Elise Haddad",
+    "year": "2026",
+    "mins": 134,
+    "bitrate": 4200,
+    "backdrop": "@art/m24_bd.jpg"
+   }
+  }
+ ],
+ "series_cats": [
+  {
+   "category_id": "201",
+   "category_name": "Drama Series",
+   "parent_id": 0
+  },
+  {
+   "category_id": "202",
+   "category_name": "Comedy & Lifestyle",
+   "parent_id": 0
+  }
+ ],
+ "series": [
+  {
+   "num": 1,
+   "name": "The Lighthouse Files",
+   "series_id": 2001,
+   "cover": "@art/s1.jpg",
+   "plot": "An engineer inherits her grandfather’s workshop and a machine nobody has ever seen switched on.",
+   "cast": "Felix Rhodes, Nora Moreau, Caleb Rhodes, Aiko Moreau",
+   "director": "Caleb Sato",
+   "genre": "Family / Sci-Fi",
+   "release_date": "2025-09-12",
+   "year": "2025",
+   "last_modified": "1793771046",
+   "rating": "6.5",
+   "rating_5based": "4",
+   "backdrop_path": [
+    "@art/s1_bd.jpg"
+   ],
+   "youtube_trailer": "",
+   "episode_run_time": "45",
+   "category_id": "201",
+   "_seasons": 1
+  },
+  {
+   "num": 2,
+   "name": "Copper Valley",
+   "series_id": 2002,
+   "cover": "@art/s2.jpg",
+   "plot": "A quiet courier is drawn into a chain of favours that stretches across a single, very long night.",
+   "cast": "Lena Ibarra, Dario Tanaka, Maya Ibarra, Kofi Tanaka",
+   "director": "Samira Haddad",
+   "genre": "Family / Crime",
+   "release_date": "2025-09-12",
+   "year": "2025",
+   "last_modified": "1793767446",
+   "rating": "8.7",
+   "rating_5based": "4",
+   "backdrop_path": [
+    "@art/s2_bd.jpg"
+   ],
+   "youtube_trailer": "",
+   "episode_run_time": "45",
+   "category_id": "201",
+   "_seasons": 2
+  },
+  {
+   "num": 3,
+   "name": "Nightshift",
+   "series_id": 2003,
+   "cover": "@art/s3.jpg",
+   "plot": "A family restores a failing lighthouse and uncovers the logbooks of everyone who kept it before them.",
+   "cast": "Rafael Sato, Priya Valdez, Tomas Sato, Samira Valdez",
+   "director": "Kofi Lindqvist",
+   "genre": "Family / Crime",
+   "release_date": "2025-09-12",
+   "year": "2025",
+   "last_modified": "1793763846",
+   "rating": "8.2",
+   "rating_5based": "4",
+   "backdrop_path": [
+    "@art/s3_bd.jpg"
+   ],
+   "youtube_trailer": "",
+   "episode_run_time": "45",
+   "category_id": "201",
+   "_seasons": 2
+  },
+  {
+   "num": 4,
+   "name": "Harrow & Finch",
+   "series_id": 2004,
+   "cover": "@art/s4.jpg",
+   "plot": "In a city that never stops raining, an archivist starts erasing the wrong records.",
+   "cast": "Elise Whitlock, Felix Brennan, Nora Whitlock, Caleb Brennan",
+   "director": "Aiko Ibarra",
+   "genre": "Comedy / Family",
+   "release_date": "2025-09-12",
+   "year": "2025",
+   "last_modified": "1793760246",
+   "rating": "6.5",
+   "rating_5based": "4",
+   "backdrop_path": [
+    "@art/s4_bd.jpg"
+   ],
+   "youtube_trailer": "",
+   "episode_run_time": "45",
+   "category_id": "201",
+   "_seasons": 1
+  },
+  {
+   "num": 5,
+   "name": "Seven Doors",
+   "series_id": 2005,
+   "cover": "@art/s5.jpg",
+   "plot": "A retired pilot takes one last job and finds the cargo is not what she was promised.",
+   "cast": "Jonas Hartwell, Lena Haddad, Dario Hartwell, Maya Haddad",
+   "director": "Idris Brennan",
+   "genre": "Thriller / Romance",
+   "release_date": "2025-09-12",
+   "year": "2025",
+   "last_modified": "1793756646",
+   "rating": "8.0",
+   "rating_5based": "4",
+   "backdrop_path": [
+    "@art/s5_bd.jpg"
+   ],
+   "youtube_trailer": "",
+   "episode_run_time": "45",
+   "category_id": "201",
+   "_seasons": 1
+  },
+  {
+   "num": 6,
+   "name": "Glass Harbor",
+   "series_id": 2006,
+   "cover": "@art/s6.jpg",
+   "plot": "When a small coastal town loses power for a week, neighbours discover what they really owe each other.",
+   "cast": "Yara Okafor, Rafael Novak, Priya Okafor, Tomas Novak",
+   "director": "Yara Okafor",
+   "genre": "Action / Sci-Fi",
+   "release_date": "2025-09-12",
+   "year": "2025",
+   "last_modified": "1793753046",
+   "rating": "6.6",
+   "rating_5based": "4",
+   "backdrop_path": [
+    "@art/s6_bd.jpg"
+   ],
+   "youtube_trailer": "",
+   "episode_run_time": "45",
+   "category_id": "201",
+   "_seasons": 3
+  },
+  {
+   "num": 7,
+   "name": "Orbit Street",
+   "series_id": 2007,
+   "cover": "@art/s7.jpg",
+   "plot": "Two rival cartographers race across a continent to map a place that does not want to be found.",
+   "cast": "Idris Lindqvist, Elise Castellan, Felix Lindqvist, Nora Castellan",
+   "director": "Jonas Rhodes",
+   "genre": "Adventure / Action",
+   "release_date": "2025-09-12",
+   "year": "2025",
+   "last_modified": "1793749446",
+   "rating": "7.3",
+   "rating_5based": "4",
+   "backdrop_path": [
+    "@art/s7_bd.jpg"
+   ],
+   "youtube_trailer": "",
+   "episode_run_time": "45",
+   "category_id": "202",
+   "_seasons": 1
+  },
+  {
+   "num": 8,
+   "name": "The Understudies",
+   "series_id": 2008,
+   "cover": "@art/s8.jpg",
+   "plot": "A night-shift nurse notices the same stranger at every ward she covers, and begins to ask why.",
+   "cast": "Aiko Moreau, Jonas Rhodes, Lena Moreau, Dario Rhodes",
+   "director": "Elise Valdez",
+   "genre": "Comedy / Romance",
+   "release_date": "2025-09-12",
+   "year": "2025",
+   "last_modified": "1793745846",
+   "rating": "8.1",
+   "rating_5based": "4",
+   "backdrop_path": [
+    "@art/s8_bd.jpg"
+   ],
+   "youtube_trailer": "",
+   "episode_run_time": "45",
+   "category_id": "202",
+   "_seasons": 1
+  },
+  {
+   "num": 9,
+   "name": "Kitchen Table",
+   "series_id": 2009,
+   "cover": "@art/s9.jpg",
+   "plot": "An engineer inherits her grandfather’s workshop and a machine nobody has ever seen switched on.",
+   "cast": "Kofi Tanaka, Yara Ibarra, Rafael Tanaka, Priya Ibarra",
+   "director": "Rafael Hartwell",
+   "genre": "Crime / Action",
+   "release_date": "2025-09-12",
+   "year": "2025",
+   "last_modified": "1793742246",
+   "rating": "8.8",
+   "rating_5based": "4",
+   "backdrop_path": [
+    "@art/s9_bd.jpg"
+   ],
+   "youtube_trailer": "",
+   "episode_run_time": "45",
+   "category_id": "202",
+   "_seasons": 2
+  },
+  {
+   "num": 10,
+   "name": "Tidewater",
+   "series_id": 2010,
+   "cover": "@art/s10.jpg",
+   "plot": "A quiet courier is drawn into a chain of favours that stretches across a single, very long night.",
+   "cast": "Samira Valdez, Idris Sato, Elise Valdez, Felix Sato",
+   "director": "Lena Castellan",
+   "genre": "Crime / Family",
+   "release_date": "2025-09-12",
+   "year": "2025",
+   "last_modified": "1793738646",
+   "rating": "7.2",
+   "rating_5based": "4",
+   "backdrop_path": [
+    "@art/s10_bd.jpg"
+   ],
+   "youtube_trailer": "",
+   "episode_run_time": "45",
+   "category_id": "202",
+   "_seasons": 2
+  },
+  {
+   "num": 11,
+   "name": "Neon Parish",
+   "series_id": 2011,
+   "cover": "@art/s11.jpg",
+   "plot": "A family restores a failing lighthouse and uncovers the logbooks of everyone who kept it before them.",
+   "cast": "Caleb Brennan, Aiko Whitlock, Jonas Brennan, Lena Whitlock",
+   "director": "Felix Tanaka",
+   "genre": "Drama / Sci-Fi",
+   "release_date": "2025-09-12",
+   "year": "2025",
+   "last_modified": "1793735046",
+   "rating": "7.2",
+   "rating_5based": "4",
+   "backdrop_path": [
+    "@art/s11_bd.jpg"
+   ],
+   "youtube_trailer": "",
+   "episode_run_time": "45",
+   "category_id": "202",
+   "_seasons": 3
+  },
+  {
+   "num": 12,
+   "name": "Far Meridian",
+   "series_id": 2012,
+   "cover": "@art/s12.jpg",
+   "plot": "In a city that never stops raining, an archivist starts erasing the wrong records.",
+   "cast": "Maya Haddad, Kofi Hartwell, Yara Haddad, Rafael Hartwell",
+   "director": "Priya Whitlock",
+   "genre": "Mystery / Drama",
+   "release_date": "2025-09-12",
+   "year": "2025",
+   "last_modified": "1793731446",
+   "rating": "7.4",
+   "rating_5based": "4",
+   "backdrop_path": [
+    "@art/s12_bd.jpg"
+   ],
+   "youtube_trailer": "",
+   "episode_run_time": "45",
+   "category_id": "202",
+   "_seasons": 1
+  }
+ ],
+ "live_cats": [
+  {
+   "category_id": "301",
+   "category_name": "News",
+   "parent_id": 0
+  },
+  {
+   "category_id": "302",
+   "category_name": "Sports",
+   "parent_id": 0
+  },
+  {
+   "category_id": "303",
+   "category_name": "Entertainment",
+   "parent_id": 0
+  },
+  {
+   "category_id": "304",
+   "category_name": "Kids & Documentary",
+   "parent_id": 0
+  }
+ ],
+ "live": [
+  {
+   "num": 1,
+   "name": "Noir News 24",
+   "stream_type": "live",
+   "stream_id": 3001,
+   "stream_icon": "@art/l1.jpg",
+   "epg_channel_id": "noir.1",
+   "added": "1792774646",
+   "category_id": "301",
+   "tv_archive": 0
+  },
+  {
+   "num": 2,
+   "name": "Noir World",
+   "stream_type": "live",
+   "stream_id": 3002,
+   "stream_icon": "@art/l2.jpg",
+   "epg_channel_id": "noir.2",
+   "added": "1792774646",
+   "category_id": "301",
+   "tv_archive": 0
+  },
+  {
+   "num": 3,
+   "name": "Noir Business",
+   "stream_type": "live",
+   "stream_id": 3003,
+   "stream_icon": "@art/l3.jpg",
+   "epg_channel_id": "noir.3",
+   "added": "1792774646",
+   "category_id": "301",
+   "tv_archive": 0
+  },
+  {
+   "num": 4,
+   "name": "Noir Sports 1",
+   "stream_type": "live",
+   "stream_id": 3004,
+   "stream_icon": "@art/l4.jpg",
+   "epg_channel_id": "noir.4",
+   "added": "1792774646",
+   "category_id": "302",
+   "tv_archive": 0
+  },
+  {
+   "num": 5,
+   "name": "Noir Sports 2",
+   "stream_type": "live",
+   "stream_id": 3005,
+   "stream_icon": "@art/l5.jpg",
+   "epg_channel_id": "noir.5",
+   "added": "1792774646",
+   "category_id": "302",
+   "tv_archive": 0
+  },
+  {
+   "num": 6,
+   "name": "Noir Racing",
+   "stream_type": "live",
+   "stream_id": 3006,
+   "stream_icon": "@art/l6.jpg",
+   "epg_channel_id": "noir.6",
+   "added": "1792774646",
+   "category_id": "302",
+   "tv_archive": 0
+  },
+  {
+   "num": 7,
+   "name": "Noir Movies",
+   "stream_type": "live",
+   "stream_id": 3007,
+   "stream_icon": "@art/l7.jpg",
+   "epg_channel_id": "noir.7",
+   "added": "1792774646",
+   "category_id": "303",
+   "tv_archive": 0
+  },
+  {
+   "num": 8,
+   "name": "Noir Classics",
+   "stream_type": "live",
+   "stream_id": 3008,
+   "stream_icon": "@art/l8.jpg",
+   "epg_channel_id": "noir.8",
+   "added": "1792774646",
+   "category_id": "303",
+   "tv_archive": 0
+  },
+  {
+   "num": 9,
+   "name": "Noir Comedy",
+   "stream_type": "live",
+   "stream_id": 3009,
+   "stream_icon": "@art/l9.jpg",
+   "epg_channel_id": "noir.9",
+   "added": "1792774646",
+   "category_id": "303",
+   "tv_archive": 0
+  },
+  {
+   "num": 10,
+   "name": "Noir Music",
+   "stream_type": "live",
+   "stream_id": 3010,
+   "stream_icon": "@art/l10.jpg",
+   "epg_channel_id": "noir.10",
+   "added": "1792774646",
+   "category_id": "303",
+   "tv_archive": 0
+  },
+  {
+   "num": 11,
+   "name": "Noir Kids",
+   "stream_type": "live",
+   "stream_id": 3011,
+   "stream_icon": "@art/l11.jpg",
+   "epg_channel_id": "noir.11",
+   "added": "1792774646",
+   "category_id": "304",
+   "tv_archive": 0
+  },
+  {
+   "num": 12,
+   "name": "Noir Nature",
+   "stream_type": "live",
+   "stream_id": 3012,
+   "stream_icon": "@art/l12.jpg",
+   "epg_channel_id": "noir.12",
+   "added": "1792774646",
+   "category_id": "304",
+   "tv_archive": 0
+  },
+  {
+   "num": 13,
+   "name": "Noir Docs",
+   "stream_type": "live",
+   "stream_id": 3013,
+   "stream_icon": "@art/l13.jpg",
+   "epg_channel_id": "noir.13",
+   "added": "1792774646",
+   "category_id": "304",
+   "tv_archive": 0
+  },
+  {
+   "num": 14,
+   "name": "Noir Cooking",
+   "stream_type": "live",
+   "stream_id": 3014,
+   "stream_icon": "@art/l14.jpg",
+   "epg_channel_id": "noir.14",
+   "added": "1792774646",
+   "category_id": "304",
+   "tv_archive": 0
+  }
+ ]
+}

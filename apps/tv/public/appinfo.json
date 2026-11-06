@@ -1,0 +1,21 @@
+{
+  "id": "com.aielbaz.noir",
+  "version": "1.0.0",
+  "vendor": "Noir",
+  "type": "web",
+  "main": "index.html",
+  "title": "Noir",
+  "appDescription": "IPTV player for Xtream Codes providers: live TV, movies and series.",
+  "icon": "noir-icon-400.png",
+  "largeIcon": "noir-icon-400.png",
+  "iconColor": "#ffffff",
+  "bgImage": "splash.png",
+  "bgColor": "#050607",
+  "disableBackHistoryAPI": true,
+  "allowVideoCapture": false,
+  "allowAudioCapture": false,
+  "resolution": "1920x1080",
+  "transparent": false,
+  "splashBackground": "splash.png",
+  "requiredACG": []
+}

@@ -1,0 +1,17 @@
+---
+const { privacy = false } = Astro.props
+---
+<header class="site-header" id="top">
+  <a class="wordmark" href="/" aria-label="Noir home">noir</a>
+  {privacy ? (
+    <nav><a href="/">← Back to home</a></nav>
+  ) : (
+    <nav aria-label="Main">
+      <a href="#ui">Experience</a>
+      <a href="#player">Player</a>
+      <a href="#details">Details</a>
+      <a href="#faq">FAQ</a>
+      <a href="/privacy">Privacy</a>
+    </nav>
+  )}
+</header>

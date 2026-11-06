@@ -1,0 +1,39 @@
+---
+import Base from '../layouts/Base.astro'
+import SiteHeader from '../components/SiteHeader.astro'
+import SiteFooter from '../components/SiteFooter.astro'
+---
+<Base title="Privacy — Noir" description="Noir has no account, no ads and no tracking. It doesn’t collect personal data about you.">
+  <SiteHeader privacy />
+  <main id="main" class="prose">
+    <h1>Privacy</h1>
+    <p class="updated">Last updated <span class="placeholder">[DATE]</span></p>
+    <p class="lead">Noir has no account, no ads and no tracking. It doesn’t collect personal data about you.</p>
+
+    <section>
+      <h2>What stays on your TV</h2>
+      <p>To work, Noir saves your login, your settings, My list, what you’ve watched and your channel lists on your TV. None of it is sent to us. Noir has no server of its own.</p>
+    </section>
+    <section>
+      <h2>Your provider</h2>
+      <p>Noir connects straight to your TV subscription provider. Noir doesn’t supply any channels or movies. Your provider’s own terms and privacy policy cover what they show you and any data they handle.</p>
+    </section>
+    <section>
+      <h2>What Noir doesn’t do</h2>
+      <ul>
+        <li>No tracking of what you do</li>
+        <li>No advertising</li>
+        <li>No sale or sharing of your data</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Removing your data</h2>
+      <p>Sign out in Settings to clear everything Noir has stored on your TV. Uninstalling the app removes it too.</p>
+    </section>
+    <section>
+      <h2>Contact</h2>
+      <p>Questions about this policy: <a href="mailto:[CONTACT EMAIL]" class="placeholder">[CONTACT EMAIL]</a></p>
+    </section>
+  </main>
+  <SiteFooter privacy />
+</Base>

@@ -1,0 +1,16 @@
+---
+const { privacy = false } = Astro.props
+---
+<footer class="site-footer">
+  <div class="inner">
+    <a class="wordmark" href="/" aria-label="Noir home">noir</a>
+    <div class="right">
+      {!privacy && <a href="/privacy">Privacy policy</a>}
+      <p class="legal">
+        {privacy
+          ? 'Noir is a media player and does not provide any content. LG and webOS are trademarks of LG Electronics Inc. © 2026 Noir'
+          : 'Noir is a media player and does not provide any content. You are responsible for the content you access with it. LG and webOS are trademarks of LG Electronics Inc. © 2026 Noir'}
+      </p>
+    </div>
+  </div>
+</footer>

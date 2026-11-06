@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "noir-site",
+  "compatibility_date": "2026-11-01",
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./dist"
+  },
+  "routes": [{ "pattern": "noir.aielbaz.com", "custom_domain": true }],
+  "observability": { "enabled": true }
+}

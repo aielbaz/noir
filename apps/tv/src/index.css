@@ -1,0 +1,109 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Bundled with the app: the TV may be offline from the public internet.
+   `block` keeps text invisible (for a moment) instead of flashing a fallback font. */
+@font-face {
+	font-family: 'Figtree Variable';
+	font-style: normal;
+	font-display: block;
+	font-weight: 300 900;
+	src: url('../node_modules/@fontsource-variable/figtree/files/figtree-latin-wght-normal.woff2') format('woff2');
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+	font-family: 'Figtree Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 300 900;
+	src: url('../node_modules/@fontsource-variable/figtree/files/figtree-latin-ext-wght-normal.woff2') format('woff2');
+	unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+
+:root {
+	--bg-base:        #050607;
+	--bg-surface:     #111418;
+	--bg-elevated:    #1b1f24;
+	--bg-card:        #1a1f2e;
+	--accent:         #1a98ff;
+	--accent-hover:   #1dbde6;
+	--accent-dim:     rgba(0,168,225,0.15);
+	--gold:           #f0c040;
+	--text-primary:   #f0f2f5;
+	--text-secondary: #8b91a0;
+	--text-muted:     #4a5066;
+	--border:         rgba(255,255,255,0.07);
+	--border-focus:   rgba(0,168,225,0.6);
+	--radius-sm:      6px;
+	--radius-md:      10px;
+	--radius-lg:      14px;
+	--radius-xl:      20px;
+	--font-display:   'Figtree Variable', system-ui, sans-serif;
+	--font-body:      'Figtree Variable', system-ui, sans-serif;
+	--nav-height:     64px;
+	--sidebar-width:  220px;
+	--transition:     0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	--color-primary:  var(--accent);
+}
+
+@layer base {
+	html, body, #root {
+		background: var(--bg-base);
+		color: var(--text-primary);
+		font-family: var(--font-body);
+		-webkit-font-smoothing: antialiased;
+	}
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 4px; }
+
+@layer utilities {
+	.text-primary { color: var(--color-primary); }
+	.bg-primary { background-color: var(--color-primary); }
+	.ring-primary { --tw-ring-color: var(--color-primary); }
+}
+
+/* Tailwind builds this from several empty custom properties, which this TV's Chromium (79) drops,
+   so the digits stayed proportional. Plain version, after Tailwind's so it wins. */
+.tabular-nums { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
+
+/* project custom utilities & animations */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes shimmer { to { background-position: -200% 0; } }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+
+
+input { font-family: inherit; }
+@layer base {
+	a { text-decoration: none; color: inherit; }
+}
+
+select option { background: #161a23; }
+
+.tv-focus { outline: none; transition: transform 0.15s ease; }
+.tv-focus:focus {
+	transform: scale(1.03);
+	box-shadow: 0 0 0 3px #fff;
+}
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Everything is sized for a 1080p panel viewed from a sofa. */
+@media (min-width: 1600px) {
+	html { font-size: 20px; }
+}
+
+/* A white button needs a gap before its white focus ring, or the ring disappears into it. */
+.tv-focus.tv-ring-gap:focus {
+	box-shadow: 0 0 0 3px #050607, 0 0 0 7px #fff;
+}
+
+/* Held arrow key in a grid: posters aren't painted until it stops (see infinite-grid.tsx). */
+[data-grid].fast img { visibility: hidden; }

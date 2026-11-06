@@ -1,0 +1,15 @@
+{
+  "name": "noir",
+  "private": true,
+  "packageManager": "pnpm@10.18.2",
+  "scripts": {
+    "tv:dev": "pnpm --filter noir-tv dev",
+    "tv:build": "pnpm --filter noir-tv build",
+    "tv:package": "pnpm --filter noir-tv package:webos",
+    "tv:lint": "pnpm --filter noir-tv lint",
+    "site:dev": "pnpm --filter noir-website dev",
+    "site:build": "pnpm --filter noir-website build",
+    "site:deploy": "pnpm --filter noir-website deploy",
+    "demo": "node tools/demo-server/server.mjs 8089"
+  }
+}
