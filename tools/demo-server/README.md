@@ -10,4 +10,4 @@ node server.mjs 8089  # login: http://<this machine>:8089, user demo, password d
 
 - Movies and episodes play `media/sample.mp4` (an original clip, served with Range support).
 - Live channels redirect to public HLS test streams (Mux and Apple), so they need internet access.
-- To use it for review, run it on a public host (HTTP or HTTPS) and put that address in `store/ux-scenario.md`.
+- To use it for review, run it on a public host (HTTP or HTTPS) and put that address in `assets/store/ux-scenario.md`.

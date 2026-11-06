@@ -2,7 +2,7 @@
 
 An IPTV player for LG webOS TVs (Xtream Codes), plus its website.
 
-![Noir home screen](store/screenshots/1-home.png)
+![Noir home screen](assets/store/screenshots/1-home.png)
 
 Website: https://noir.aielbaz.com. The screenshots use invented demo content.
 
@@ -10,8 +10,7 @@ Website: https://noir.aielbaz.com. The screenshots use invented demo content.
 apps/tv           The webOS app (React + Vite). Packaged as an .ipk.
 apps/website      noir.aielbaz.com (Astro, deployed to Cloudflare).
 tools/demo-server Fake Xtream server with invented content, for screenshots and store review.
-store/            LG Content Store listing: text, icon, screenshots, privacy policy, checklist.
-noir-identity/    Brand files: icons, wordmark, splash.
+assets/           Brand files (assets/brand) and LG Content Store listing material (assets/store).
 ```
 
 pnpm workspace. Install once at the root:
