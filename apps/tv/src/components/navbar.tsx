@@ -72,7 +72,9 @@ export default function Navbar() {
 
   return (
     <>
-    <div className="pointer-events-none fixed left-4 top-6 z-50 flex w-16 justify-center">
+    {/* Content scrolls under the rail: this fades it out toward the edge instead of cutting it off. */}
+    <div aria-hidden className="pointer-events-none fixed inset-y-0 left-0 z-40 w-24 bg-gradient-to-r from-[#050607] via-[#050607]/80 to-transparent" />
+    <div className="pointer-events-none fixed left-2 top-6 z-50 flex w-16 justify-center">
       <img src="noir-wordmark.svg" alt="Noir" className="h-8 select-none" />
     </div>
     <FocusScope
@@ -82,7 +84,7 @@ export default function Navbar() {
       // Entering the pill lands on the current page's item, not wherever focus was last.
       rememberChild={false}
       preferredChildFocusKey={`nav-${current?.to ?? '/'}`}
-      className="group fixed left-4 top-1/2 z-50 flex w-16 -translate-y-1/2 flex-col rounded-[2rem] bg-[#111418] p-2 ring-1 ring-white/10 transition-[width] duration-200 focus-within:w-44"
+      className="group fixed left-2 top-1/2 z-50 flex w-16 -translate-y-1/2 flex-col rounded-[2rem] bg-[#111418] p-2 ring-1 ring-white/10 transition-[width] duration-200 focus-within:w-44"
     >
       {navItems.map(entry => <NavLink key={entry.to} entry={entry} pathname={pathname} railEntry={railEntry} className="mb-1 last:mb-0" />)}
     </FocusScope>
@@ -118,7 +120,7 @@ function NavLink({ entry: { label, to, Icon }, pathname, railEntry, className }:
 function SettingsButton({ active, railEntry }: { active: boolean; railEntry: boolean }) {
   return (
     <FocusContext.Provider value="nav">
-    <div className="fixed bottom-6 left-4 z-50 flex w-16 justify-center">
+    <div className="fixed bottom-6 left-2 z-50 flex w-16 justify-center">
       <FocusLink
         to="/settings"
         replace={railEntry}
