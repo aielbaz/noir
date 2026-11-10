@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 
 import { useApp } from "../context/app-provider"
 import ExitDialog from "../components/exit-dialog"
+import { handleBack } from "../utils/back-handler"
 
 function exitApp() {
   // webOS exposes PalmSystem to apps; window.close() alone does nothing there.
@@ -32,6 +33,7 @@ function RootLayout() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || pathname === "/" || pathname === "/login") return
+      if (handleBack()) { e.preventDefault(); return }
       if (router.history.canGoBack()) {
         e.preventDefault()
         router.history.back()
@@ -51,6 +53,7 @@ function RootLayout() {
       e.preventDefault()
       e.stopImmediatePropagation()
       if (confirmExit) return setConfirmExit(false) // Back on the dialog means "stay"
+      if (handleBack()) return // the screen used it for something smaller than leaving
       const state = router.state.location.state as { rail?: boolean } | undefined
       if (pathname === "/" && !state?.rail) return setConfirmExit(true)
       if (router.history.canGoBack() || window.history.length > 1) router.history.back()
