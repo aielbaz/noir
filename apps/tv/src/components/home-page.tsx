@@ -59,11 +59,41 @@ export default function HomePage() {
   const { creds } = useApp()
   const heroKey = creds && heroCategories ? `streambox_hero4:${creds.base}:${creds.username}` : ''
   const cachedHero = useMemo(() => readHero(heroKey, selectionKey), [heroKey, selectionKey])
-  const heroItems = useMemo(() => {
+  const wantedHero = useMemo(() => {
     if (!freshHero.length) return cachedHero
     const same = freshHero.length === cachedHero.length && freshHero.every((it, i) => heroId(it) === heroId(cachedHero[i]))
     return same ? cachedHero : freshHero
   }, [freshHero, cachedHero])
+  // A new banner replaces the one on screen only after its first backdrop (up to 4K) has been
+  // downloaded and decoded, and while the remote is quiet: painting it cold would stall the next key press.
+  const [heroItems, setHeroItems] = useState(wantedHero)
+  if (!heroItems.length && wantedHero.length) setHeroItems(wantedHero) // nothing on screen yet: no reason to wait
+  const lastKey = useRef(0)
+  useEffect(() => {
+    const note = () => { lastKey.current = Date.now() }
+    window.addEventListener('keydown', note, true)
+    return () => window.removeEventListener('keydown', note, true)
+  }, [])
+  useEffect(() => {
+    if (wantedHero === heroItems || !heroItems.length) return
+    const url = firstImageUrl(wantedHero[0]?.backdrop_path)
+    let cancelled = false
+    let timer = 0
+    const apply = () => {
+      if (cancelled) return
+      const wait = 1500 - (Date.now() - lastKey.current)
+      if (wait > 0) { timer = window.setTimeout(apply, wait); return }
+      startTransition(() => setHeroItems(wantedHero))
+    }
+    if (url) {
+      const img = new Image()
+      img.src = url
+      img.decode().then(apply, apply) // a failed image shouldn't keep the old banner forever
+    } else {
+      timer = window.setTimeout(apply, 0)
+    }
+    return () => { cancelled = true; window.clearTimeout(timer) }
+  }, [wantedHero, heroItems])
   useEffect(() => {
     if (heroKey && freshHero.length) {
       try { localStorage.setItem(heroKey, JSON.stringify({ selection: selectionKey, items: freshHero })) } catch { /* storage full: next launch just waits */ }

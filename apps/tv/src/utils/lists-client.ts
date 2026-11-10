@@ -64,8 +64,13 @@ export async function syncList(creds: Creds, kind: Kind, force = false) {
   lastCheck.set(key, Date.now())
   const r = await call<{ refreshed: boolean }>({ op: 'sync', key, url: itemsUrl(creds, kind, null), maxAge, force })
   if (r.refreshed) {
-    await queryClient.invalidateQueries({ queryKey: ['items', kind] })
-    queryClient.invalidateQueries({ queryKey: ['hero'] }) // the newest titles may have changed
+    // Mark what is loaded as out of date, but don't reload it: refetching every open row and grid at
+    // once swaps the content under the user's remote while the TV is also parsing the new list.
+    // Each screen picks up the fresh copy the next time it is opened (refetchOnMount).
+    queryClient.invalidateQueries({ queryKey: ['items', kind], refetchType: 'none' })
+    // A banner that has not been built yet is waiting for this list; one already showing can wait.
+    queryClient.invalidateQueries({ queryKey: ['hero'], predicate: q => q.state.data === undefined })
+    queryClient.invalidateQueries({ queryKey: ['hero'], predicate: q => q.state.data !== undefined, refetchType: 'none' })
   }
 }
 

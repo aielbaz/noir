@@ -31,6 +31,8 @@ export function useCategoryItems(kind: Kind, categoryId: string | null | undefin
       return items
     },
     enabled: !!creds && categoryId != null,
+    // Skip the deep comparison of thousands of entries on every refetch; it costs more than it saves on a TV.
+    structuralSharing: false,
     // Long enough to watch a film and come back to the same list without a reload.
     gcTime: 1000 * 60 * 45,
   })
