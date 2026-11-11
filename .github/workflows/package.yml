@@ -1,0 +1,40 @@
+name: package
+
+# Builds the webOS app at a release tag and attaches the .ipk to that GitHub release.
+# Runs after release-please makes a release; can also be run by hand for an existing tag.
+on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build and attach to (for example v1.0.1)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  ipk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: pnpm/action-setup@v4 # version comes from packageManager in package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # The same webOS packaging tools (ares-package) the app is built with locally.
+      - run: npm install --global @webos-tools/cli@3.2.6
+      - run: pnpm tv:package
+      - run: gh release upload "$TAG" apps/tv/build/*.ipk --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}

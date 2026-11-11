@@ -2,7 +2,8 @@ name: release-please
 
 # Keeps a release pull request open for the TV app: it bumps the version in apps/tv
 # (package.json and the webOS appinfo.json) and writes the changelog from the commit
-# messages (fix: -> patch, feat: -> minor). Merging that pull request tags the release.
+# messages (fix: -> patch, feat: -> minor). Merging that pull request tags the release,
+# and the app is then built and its .ipk attached to that release.
 on:
   push:
     branches: [main]
@@ -14,8 +15,19 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.release.outputs['apps/tv--release_created'] }}
+      tag: ${{ steps.release.outputs['apps/tv--tag_name'] }}
     steps:
       - uses: googleapis/release-please-action@v4
+        id: release
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  package:
+    needs: release-please
+    if: needs.release-please.outputs.released == 'true'
+    uses: ./.github/workflows/package.yml
+    with:
+      tag: ${{ needs.release-please.outputs.tag }}
