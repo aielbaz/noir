@@ -88,8 +88,10 @@ export function useSeek(player: RefObject<MediaPlayerInstance | null>, { enabled
     return true
   }, 3)
 
-  // Buttons and the rewind / fast-forward keys: the same staged jump as the arrows.
+  // The rewind / fast-forward keys: the same staged jump as the arrows.
   const by = useCallback((delta: number) => { stage(delta); commit() }, [stage, commit])
+  // The 10-second buttons: pressing one is already a decision, so the jump goes out at once.
+  const jump = useCallback((delta: number) => { stage(delta); commit(0) }, [stage, commit])
 
   // A click on the bar.
   const to = useCallback((target: number) => {
@@ -133,5 +135,5 @@ export function useSeek(player: RefObject<MediaPlayerInstance | null>, { enabled
     if (targetRef.current != null && p && Math.abs(p.currentTime - targetRef.current) < 3) end()
   }, [player, end])
 
-  return { scrub, scrubFrom, sent, ended, by, to, hold: holdKey, release, confirmNow, landed }
+  return { scrub, scrubFrom, sent, ended, by, jump, to, hold: holdKey, release, confirmNow, landed }
 }

@@ -166,15 +166,15 @@ function PlayerView({ search }: { search: PlayerSearch }) {
 
   // Remote control.
   const { moveFocus, hide, focused, isVisible, isAwake } = controls
-  const { by: seekBy, hold: seekHold, release, confirmNow } = seek
+  const { by: seekBy, jump: seekNow, hold: seekHold, release, confirmNow } = seek
   const { isOpen: isPanelOpen, open: openPanel } = panel
   const { isBehind, catchUp } = live
   useEffect(() => {
     // OK on a focused control button.
     const activate = (index: number) => {
-      if (index === 0) seekBy(-SEEK_STEP)
+      if (index === 0) seekNow(-SEEK_STEP)
       else if (index === PLAY_BUTTON) togglePlay()
-      else if (index === 2) seekBy(SEEK_STEP)
+      else if (index === 2) seekNow(SEEK_STEP)
       else openPanel(index === 3 ? 'speed' : 'tracks')
     }
     const onKeyUp = (e: KeyboardEvent) => release(e.keyCode === KEY.left || e.keyCode === KEY.right)
@@ -255,7 +255,7 @@ function PlayerView({ search }: { search: PlayerSearch }) {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('keyup', onKeyUp)
     }
-  }, [isLive, stopPlay, wake, seekBy, seekHold, release, confirmNow, togglePlay, toggleRemaining, moveFocus, hide, focused, isVisible, isAwake, isPanelOpen, openPanel, isBehind, catchUp, zap])
+  }, [isLive, stopPlay, wake, seekBy, seekNow, seekHold, release, confirmNow, togglePlay, toggleRemaining, moveFocus, hide, focused, isVisible, isAwake, isPanelOpen, openPanel, isBehind, catchUp, zap])
 
   // Error screen: Left/Right/OK pick between Retry and Back. Capture phase, so the
   // spatial-navigation library (which listens first and swallows keys) can't eat them.
@@ -381,11 +381,11 @@ function PlayerView({ search }: { search: PlayerSearch }) {
                     <TimeLabel remaining={showRemaining} focused={controls.focus === TIME_LABEL} onToggle={toggleRemaining} />
                   </div>
                   <div className="flex flex-none items-center gap-3">
-                    <RoundButton label="Back 10 seconds" focused={controls.focus === 0} onClick={() => seek.by(-SEEK_STEP)}><Replay10Icon className="size-9" /></RoundButton>
+                    <RoundButton label="Back 10 seconds" focused={controls.focus === 0} onClick={() => seek.jump(-SEEK_STEP)}><Replay10Icon className="size-9" /></RoundButton>
                     <RoundButton label={paused ? 'Play' : 'Pause'} focused={controls.focus === 1} onClick={togglePlay} large>
                       {paused ? <PlayIcon className="size-9" /> : <PauseIcon className="size-9" />}
                     </RoundButton>
-                    <RoundButton label="Forward 10 seconds" focused={controls.focus === 2} onClick={() => seek.by(SEEK_STEP)}><Forward10Icon className="size-9" /></RoundButton>
+                    <RoundButton label="Forward 10 seconds" focused={controls.focus === 2} onClick={() => seek.jump(SEEK_STEP)}><Forward10Icon className="size-9" /></RoundButton>
                   </div>
                   <div className="flex flex-1 items-center justify-end gap-3">
                     <RoundButton label="Playback speed" focused={controls.focus === 3} onClick={() => panel.open('speed')}><span className="text-xl font-bold">{rate}×</span></RoundButton>
