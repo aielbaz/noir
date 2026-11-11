@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "a4f8cd154ade6ac86d69b5ec6b2248e7e991896b",
+  "include-component-in-tag": false,
+  "packages": {
+    "apps/tv": {
+      "release-type": "node",
+      "package-name": "noir",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        { "type": "json", "path": "public/appinfo.json", "jsonpath": "$.version" }
+      ]
+    }
+  }
+}
