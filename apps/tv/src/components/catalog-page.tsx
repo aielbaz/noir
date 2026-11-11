@@ -152,6 +152,14 @@ export default function CatalogPage({ kind }: { kind: Kind }) {
         if (cells.length && next && following && next.getBoundingClientRect().top > el.getBoundingClientRect().top + 8) {
           e.preventDefault(); e.stopPropagation(); sendFocus(cardFocusKey(kind, following))
         }
+      } else if (e.keyCode === 38 && el.closest('[data-grid]')) {
+        // Up from the top row goes to the sort button. Left to the spatial search, a scrolled
+        // category list puts some category nearer than the header and focus lands there.
+        const grid = el.closest<HTMLElement>('[data-grid]')!
+        const first = grid.firstElementChild
+        if (first && Number(grid.dataset.start ?? 0) === 0 && el.getBoundingClientRect().top <= first.getBoundingClientRect().top + 8) {
+          e.preventDefault(); e.stopPropagation(); sendFocus(SORT_KEY)
+        }
       } else if (e.keyCode === 37 && homeKey && el.textContent?.trim() === 'Retry') {
         e.preventDefault(); e.stopPropagation(); sendFocus(homeKey)
       } else if (e.keyCode === 37 && homeKey && el.closest('[data-grid]')) {
@@ -217,6 +225,7 @@ export default function CatalogPage({ kind }: { kind: Kind }) {
             <div className="flex shrink-0 items-center gap-3">
               <ActionButton
                 size="sm"
+                focusKey={SORT_KEY}
                 icon={<SortIcon />}
                 onClick={() => setSort(nextOf(SORTS.map(s => s.id), sort))}
               >
@@ -294,6 +303,7 @@ function ChannelInfo({ streamId }: { streamId: number | undefined }) {
 }
 
 const RETRY_KEY = 'catalog-retry'
+const SORT_KEY = 'catalog-sort'
 
 export function Message({ children, action }: { children: string; action?: { label: string; onClick: () => void } }) {
   return (
