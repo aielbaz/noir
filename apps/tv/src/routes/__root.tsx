@@ -1,7 +1,7 @@
-import { createRootRoute, Outlet, useNavigate, useRouter, useRouterState } from "@tanstack/react-router"
+import { createRootRoute, Outlet, redirect, useRouter, useRouterState } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 
-import { useApp } from "../context/app-provider"
+import { hasSavedLogin } from "../utils/saved-login"
 import ExitDialog from "../components/exit-dialog"
 import { handleBack } from "../utils/back-handler"
 
@@ -13,21 +13,9 @@ function exitApp() {
 }
 
 function RootLayout() {
-  const { creds } = useApp()
   const router = useRouter()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
-  const navigate = useNavigate()
   const [confirmExit, setConfirmExit] = useState(false)
-
-  useEffect(() => {
-    if (!creds && pathname !== "/login") {
-      navigate({ to: "/login", replace: true })
-      return
-    }
-    if (creds && pathname === "/login") {
-      navigate({ to: "/", replace: true })
-    }
-  }, [creds, navigate, pathname])
 
   // Escape does the same as Back for keyboards and the browser dev server.
   useEffect(() => {
@@ -63,8 +51,6 @@ function RootLayout() {
     return () => window.removeEventListener("keydown", onKey, true)
   }, [router, pathname, confirmExit])
 
-  if (!creds && pathname !== "/login") return null
-
   return (
     <>
       <Outlet />
@@ -73,6 +59,13 @@ function RootLayout() {
   )
 }
 
+// Signed out goes to the login screen, signed in leaves it. Checked on every navigation; login() and
+// logout() navigate themselves, since a change of credentials alone is not a navigation.
 export const Route = createRootRoute({
+  beforeLoad: ({ location }) => {
+    const signedIn = hasSavedLogin()
+    if (!signedIn && location.pathname !== "/login") throw redirect({ to: "/login", replace: true })
+    if (signedIn && location.pathname === "/login") throw redirect({ to: "/", replace: true })
+  },
   component: RootLayout,
 })

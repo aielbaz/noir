@@ -3,6 +3,7 @@ import { clearRows } from '../utils/row-cache'
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { router } from '../router'
+import { LOGIN_KEY } from '../utils/saved-login'
 import { buildUrl } from '../utils/xtream'
 import { clearProgress } from '../utils/progress'
 import { rememberAccount } from '../utils/accounts'
@@ -41,7 +42,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const [creds, setCreds] = useState<Credentials | null>(() => {
     try {
-      const saved = localStorage.getItem('streambox_creds')
+      const saved = localStorage.getItem(LOGIN_KEY)
       return saved ? JSON.parse(saved) : null
     } catch { return null }
   })
@@ -50,12 +51,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const c = buildUrl(server, username, password)
     setCreds(c)
     rememberAccount(c)
-    localStorage.setItem('streambox_creds', JSON.stringify(c))
+    localStorage.setItem(LOGIN_KEY, JSON.stringify(c))
+    router.navigate({ to: '/', replace: true })
   }, [])
 
   const logout = useCallback(() => {
     setCreds(null)
-    localStorage.removeItem('streambox_creds')
+    localStorage.removeItem(LOGIN_KEY)
     clearProgress()
     forgetViews()
     clearFavorites()
@@ -63,6 +65,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     clearRows()
     clearLists()
     queryClient.clear()
+    router.navigate({ to: '/login', replace: true })
   }, [queryClient])
 
   const play = useCallback((item: PlaybackItem, options?: { replace?: boolean }) => {

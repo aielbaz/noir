@@ -1,7 +1,7 @@
 import { flushSync } from 'react-dom'
 import { sendFocus } from './focusable'
 import { setFastScrolling } from './poster'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 
 type Props = {
   className: string
@@ -40,9 +40,9 @@ export default function InfiniteGrid({ className, total, renderItem, resetKey, e
   // cols/pitch are 0 until the first batch has been measured. A view from another list is stale.
   const [stored, setView] = useState<View>({ key: '', start: 0, end: FIRST_BATCH, cols: 0, pitch: 0 })
   const view = stored.key === resetKey ? stored : { key: resetKey, start: 0, end: FIRST_BATCH, cols: 0, pitch: 0 }
-  const viewRef = useRef(view)
-  const focusKeyRef = useRef(focusKeyOf)
-  useEffect(() => { viewRef.current = view; focusKeyRef.current = focusKeyOf })
+  const currentView = useEffectEvent(() => view)
+  const currentFocusKey = useEffectEvent(() => focusKeyOf)
+  const loaded = useEffectEvent(() => total)
 
   const update = useCallback(() => {
     const el = grid.current
@@ -96,10 +96,10 @@ export default function InfiniteGrid({ className, total, renderItem, resetKey, e
     const onFocus = (e: FocusEvent) => {
       ensure.current = { key: ensure.current.key, index: undefined }
       const cell = (e.target as HTMLElement).closest('[data-grid] > *')
-      const cols = viewRef.current.cols
+      const cols = currentView().cols
       if (!el || !cell || !cols) return
       const index = Number(el.dataset.start ?? 0) + Array.from(el.children).indexOf(cell)
-      focusRow.current = { key: viewRef.current.key, row: Math.floor(index / cols) }
+      focusRow.current = { key: currentView().key, row: Math.floor(index / cols) }
     }
     const el = grid.current
     // While an arrow key is held the page scrolls too fast to read: skip painting the
@@ -116,7 +116,7 @@ export default function InfiniteGrid({ className, total, renderItem, resetKey, e
       const active = document.activeElement
       if (!el || !active || !el.contains(active)) return
       const cell = active.closest('[data-grid] > *')
-      const cols = viewRef.current.cols
+      const cols = currentView().cols
       if (!cell || !cols) return
       // Only a key held while focus is inside this grid counts: elsewhere nothing is hidden.
       if (held) {
@@ -134,7 +134,7 @@ export default function InfiniteGrid({ className, total, renderItem, resetKey, e
         e.stopImmediatePropagation()
         return
       }
-      const keyOf = focusKeyRef.current
+      const keyOf = currentFocusKey()
       if (!keyOf) return
       // Move by index: the same cell one row up/down, or the neighbour left/right. Edges
       // (leaving the grid, wrapping to the next row) are left to the page's own handlers.
@@ -147,14 +147,14 @@ export default function InfiniteGrid({ className, total, renderItem, resetKey, e
         if (busy) { e.preventDefault(); e.stopImmediatePropagation(); return }
       }
       if (e.keyCode === 40) {
-        const lastRow = Math.floor((total - 1) / cols)
+        const lastRow = Math.floor((loaded() - 1) / cols)
         const rows = Math.min(1, lastRow - row)
-        target = rows <= 0 ? -2 : index + rows * cols < total ? index + rows * cols : total - 1
+        target = rows <= 0 ? -2 : index + rows * cols < loaded() ? index + rows * cols : loaded() - 1
       } else if (e.keyCode === 38) {
         if (row > 0) target = index - cols
       } else if (e.keyCode === 37) {
         if (index % cols !== 0) target = index - 1
-      } else if (index % cols !== cols - 1 && index + 1 < total) {
+      } else if (index % cols !== cols - 1 && index + 1 < loaded()) {
         target = index + 1
       }
       if (target === -1) return
@@ -164,14 +164,14 @@ export default function InfiniteGrid({ className, total, renderItem, resetKey, e
       // Make sure the target is mounted before focusing it, however fast the keys come.
       const end = Number(el.dataset.start ?? 0) + el.children.length
       if (target < start || target >= end) {
-        focusRow.current = { key: viewRef.current.key, row: Math.floor(target / cols) }
+        focusRow.current = { key: currentView().key, row: Math.floor(target / cols) }
         flushSync(update)
       }
       sendFocus(keyOf(target))
       if (vertical && held) {
         // Mount the rows around the new position before the next paint, so the screen never shows a gap.
         ahead.current = { dir: e.keyCode === 40 ? 1 : -1, rows: 3 }
-        focusRow.current = { key: viewRef.current.key, row: Math.floor(target / cols) }
+        focusRow.current = { key: currentView().key, row: Math.floor(target / cols) }
         flushSync(update)
         busy = true
         window.requestAnimationFrame(() => window.requestAnimationFrame(settled))
