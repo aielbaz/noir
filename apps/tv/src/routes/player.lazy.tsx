@@ -1,13 +1,10 @@
-import { createLazyFileRoute, useRouter, useRouterState } from '@tanstack/react-router'
+import { createLazyFileRoute } from '@tanstack/react-router'
 import type { PlayerSearch } from './player'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   MediaPlayer,
   MediaProvider,
   isHLSProvider,
-  useAudioOptions,
-  useCaptionOptions,
-  useMediaState,
   type MediaPlayerInstance,
   type MediaProviderAdapter,
 } from '@vidstack/react'
@@ -16,39 +13,34 @@ import '@vidstack/react/player/styles/base.css'
 import { useApp } from '../context/app-provider'
 import { useEpg } from '../hooks/use-epg'
 import { formatSize, useStreamSize } from '../hooks/use-stream-size'
-import { getProgress, saveProgress } from '../utils/progress'
-import { SPEEDS, getSettings, useSettings } from '../utils/settings'
+import { getSettings, useSettings } from '../utils/settings'
 import { getChannelList, getEpisodeQueue } from '../utils/playback-context'
 import { addRecentChannel } from '../utils/recents'
 import { streamUrl as buildStreamUrl } from '../utils/xtream'
 import { cn } from '../utils/cn'
-import { setBackHandler } from '../utils/back-handler'
+import { useExitNotice } from '../hooks/use-exit-notice'
+import { useSeek } from '../hooks/use-seek'
+import { usePlayerPanel } from '../hooks/use-player-panel'
+import { useProgressSaving } from '../hooks/use-progress-saving'
+import { useResume } from '../hooks/use-resume'
+import { useStreamHealth } from '../hooks/use-stream-health'
+import { useLiveDelay } from '../hooks/use-live-delay'
+import { useClock } from '../hooks/use-clock'
+import { usePlayerControls, BAR, TIME_LABEL, PLAY_BUTTON, BUTTON_COUNT } from '../hooks/use-player-controls'
 import { buttonClass } from '../components/button'
-import Ratio, { WIDE } from '../components/ratio'
 import { BackIcon, CaptionsIcon, Forward10Icon, PauseIcon, PlayIcon, Replay10Icon, RetryIcon } from '../components/icons'
+import { KEY } from '../components/player/keys'
+import ProgressBar from '../components/player/progress-bar'
+import RoundButton from '../components/player/round-button'
+import SeekOverlay from '../components/player/seek-overlay'
+import { SpeedMenu, TrackMenu } from '../components/player/menus'
+import Spinner from '../components/player/spinner'
+import TimeLabel from '../components/player/time-label'
+import UpNextCard from '../components/player/up-next-card'
 
 
-const CONTROLS_TIMEOUT = 4000
 const SEEK_STEP = 10
-const CONTROL_COUNT = 5 // back 10s, play/pause, forward 10s, speed, audio & subtitles
-type PanelKind = 'speed' | 'tracks'
-const PLAY_BUTTON = 1
-const BAR = -1
-const TIME_LABEL = -3 // the elapsed/remaining time, which toggles on OK
 const REMAINING_KEY = 'streambox_time_remaining'
-const UP_NEXT_SECONDS = 60
-const MAX_RECONNECTS = 3
-const LIVE_START_LAG = 30 // seconds a fresh HLS start sits behind the newest segment
-const LIVE_DRIFT_MIN = 8 // seconds of extra delay before we call it "behind"
-const START_TIMEOUT_MS = 6000
-
-// Key codes: standard keyboard plus the LG remote's media/channel keys.
-const KEY = {
-  enter: 13, space: 32, left: 37, up: 38, right: 39, down: 40,
-  pageUp: 33, pageDown: 34, playPause: 179,
-  rewind: 412, stop: 413, play: 415, fastForward: 417, pause: 19,
-  channelUp: 427, channelDown: 428,
-} as const
 
 // Providers usually serve live streams as .ts but also expose HLS at .m3u8,
 // which is what browsers can actually play.
@@ -65,23 +57,6 @@ function onProviderChange(provider: MediaProviderAdapter | null) {
   if (isHLSProvider(provider)) {
     provider.library = './hls.min.js' // vidstack loads it as a script and reads window.Hls
   }
-}
-
-// Seeking never touches the video while keys are down: presses and holds only
-// move a "scrub" position (shown on the bar and clock), and one real seek happens
-// shortly after the last key is released, so the stream loads once, not per step.
-// Press: one 10s step. Held: after a short pause, the position moves in small, frequent steps
-// whose speed grows the longer the key stays down (10s per quarter second -> ~50s after 3s ->
-// ~270s after 5s). Each step covers the time since the last one, so the speed doesn't depend on
-// how fast a remote repeats keys, and the bar (which slides linearly between steps) looks continuous.
-const HOLD_DELAY_MS = 450
-const HOLD_INTERVAL_MS = 60 // at most one step per this long
-const COMMIT_DELAY_MS = 1200 // long enough to change your mind: Back cancels, OK confirms at once
-const EXIT_NOTICE_MS = 2500 // how long "Back again to exit" waits for the second press
-const END_MARGIN = 5 // seconds: seeking never lands closer than this to the end, which would end the film
-const holdStep = (heldMs: number, duration: number) => {
-  const step = 10 * Math.pow(1.75, heldMs / 1000)
-  return Math.min(step, Math.max(120, duration / 15))
 }
 
 const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -105,61 +80,30 @@ function NoStream() {
 function PlayerView({ search }: { search: PlayerSearch }) {
   const { creds, stopPlay, play } = useApp()
   const player = useRef<MediaPlayerInstance>(null)
-  const hideTimer = useRef<number | undefined>(undefined)
   const lastPointer = useRef({ x: 0, y: 0 })
-  const [awake, setAwake] = useState(true)
-  const awakeRef = useRef(true)
-  const visibleRef = useRef(true)
-  awakeRef.current = awake
-  // Live only: how far the picture has fallen behind the live edge.
-  const [behind, setBehind] = useState(0)
-  const behindRef = useRef(0)
-  behindRef.current = behind
-  const [paused, setPaused] = useState(false)
-  // Focus: -3 time label, -1 progress bar (Left/Right seek), 0..4 control buttons.
-  const focusRef = useRef(-1)
-  const [focusIndex, setFocusIndex] = useState(-1)
-  const [error, setError] = useState<string | null>(null)
-  const errorRef = useRef<string | null>(null)
-  errorRef.current = error
-  const [exitNotice, setExitNotice] = useState(false)
-  const [reconnecting, setReconnecting] = useState(false)
-  const [attempt, setAttempt] = useState(0)
   const settings = useSettings()
+  const [paused, setPaused] = useState(false)
   const [rate, setRate] = useState(() => getSettings().defaultSpeed)
-  const router = useRouter()
-  // The audio & subtitles panel lives in the history stack (as location state),
-  // so the TV's Back key closes it first instead of leaving the player.
-  const panel = useRouterState({ select: s => (s.location.state as { panel?: PanelKind } | undefined)?.panel })
-  const panelOpen = !!panel
-  const [upNext, setUpNext] = useState(false)
-  // Back hides the card for the rest of this episode (the next one still follows if autoplay is on).
-  const [upNextDismissed, setUpNextDismissed] = useState(false)
-  const upNextRef = useRef(false)
-  upNextRef.current = upNext
-
-  const [resumeAt, setResumeAt] = useState(() => getProgress(search.id)?.position ?? 0)
-  const resumed = useRef(false)
-  // The bar glides between ticks of the clock, but never while a film opens part-way in: it stays still
-  // until the stream has loaded and the clock is at the saved position (see onTimeUpdate), however long
-  // that takes. It is switched off again if the stream has to reconnect and jump back.
-  const [barGlides, setBarGlides] = useState(() => resumeAt <= 5)
-  const glideArmed = useRef(false)
-  const reconnects = useRef(0)
-  const hold = useRef({ since: 0, last: 0 })
-  const latest = useRef({ position: 0, duration: 0 })
-  const lastSaved = useRef(0)
-  const panelOpenRef = useRef(false)
-  panelOpenRef.current = panelOpen
-
-  const openPanel = useCallback((kind: PanelKind = 'tracks') => {
-    if (!panelOpenRef.current) router.history.push(router.state.location.href, { panel: kind })
-  }, [router])
-  const closePanel = useCallback(() => {
-    if (panelOpenRef.current) router.history.back()
-  }, [router])
+  // Bumped to make the player start the stream again (a reconnect, a retry, "go live").
+  const [attempt, setAttempt] = useState(0)
+  const reload = useCallback(() => setAttempt(a => a + 1), [])
 
   const { id, group, name, image, type, streamUrl: currentUrl = '' } = search
+  const isLive = type === 'live'
+
+  const panel = usePlayerPanel()
+  const progress = useProgressSaving({ id, group, name, image, type, streamUrl: currentUrl })
+  const resume = useResume(player, id, attempt)
+  const health = useStreamHealth({
+    isLive, attempt, streamUrl: currentUrl, reload,
+    beforeReconnect: () => { if (!isLive) resume.restartAt(progress.position()) }, // a movie picks up where it broke
+  })
+  const live = useLiveDelay(isLive, `${attempt}:${currentUrl}`, reload)
+  const seek = useSeek(player, { enabled: !isLive, canSeek: resume.settled })
+  const controls = usePlayerControls({ paused, held: !!health.error || !!panel.panel || seek.scrub !== null })
+  // The first Back only asks "again to exit". (Not while a menu or the error screen is up.)
+  const exitNotice = useExitNotice(!!panel.panel || !!health.error)
+
   const streamSize = useStreamSize(type, id, group)
   // Elapsed or remaining time on the left of the bar: a viewing habit, so it is remembered.
   const [showRemaining, setShowRemaining] = useState(() => localStorage.getItem(REMAINING_KEY) === '1')
@@ -169,7 +113,6 @@ function PlayerView({ search }: { search: PlayerSearch }) {
       return !v
     })
   }, [])
-  const isLive = type === 'live'
   const liveId = isLive && id?.startsWith('live:') ? Number(id.slice(5)) : undefined
   const epg = useEpg(liveId)
 
@@ -181,147 +124,6 @@ function PlayerView({ search }: { search: PlayerSearch }) {
   const queueIndex = queue.findIndex(q => q.id === id)
   const nextEpisode = queueIndex >= 0 ? queue[queueIndex + 1] : undefined
 
-  // Jump to the saved position as soon as the stream can be sought. The TV only
-  // reports seekable ranges after canplay, and a seek before then is silently
-  // dropped, so wait for the range instead of seeking on canplay.
-  useEffect(() => {
-    if (resumeAt <= 5) { resumed.current = true; return }
-    const startedAt = Date.now()
-    const timer = window.setInterval(() => {
-      const video = document.querySelector('video')
-      // Never trap the user: if the position can't be applied in a while, let seeking through.
-      if (!resumed.current && Date.now() - startedAt > 15000) resumed.current = true
-      if (resumed.current || !video || !player.current || video.seekable.length === 0) return
-      if (video.seekable.end(video.seekable.length - 1) <= resumeAt) return
-      player.current.currentTime = resumeAt
-      resumed.current = true
-    }, 200)
-    return () => window.clearInterval(timer)
-  }, [resumeAt, attempt])
-
-  const trackable = !isLive && !!id && !!group && (type === 'movie' || type === 'episode')
-
-  const persist = useCallback(() => {
-    if (!trackable) return
-    const { position, duration } = latest.current
-    saveProgress({ id: id!, group: group!, kind: type as 'movie' | 'episode', name: name ?? 'Untitled', image, streamUrl: currentUrl, position, duration })
-  }, [trackable, id, group, type, name, image, currentUrl])
-
-  // Save on the way out (Back key, zapping, next episode) as well as periodically.
-  useEffect(() => persist, [persist])
-
-  // The TV can kill the app from the Home button without unmounting anything.
-  useEffect(() => {
-    const onHide = () => persist()
-    document.addEventListener('visibilitychange', onHide)
-    window.addEventListener('pagehide', onHide)
-    return () => {
-      document.removeEventListener('visibilitychange', onHide)
-      window.removeEventListener('pagehide', onHide)
-    }
-  }, [persist])
-
-  // Put away by the user (Up from the bar, Down from the buttons): stays hidden even while paused, until the next key.
-  const [dismissed, setDismissed] = useState(false)
-  const wake = useCallback(() => {
-    setDismissed(false)
-    setAwake(true)
-    window.clearTimeout(hideTimer.current)
-    hideTimer.current = window.setTimeout(() => setAwake(false), CONTROLS_TIMEOUT)
-  }, [])
-
-  const hideControls = useCallback(() => {
-    window.clearTimeout(hideTimer.current)
-    setDismissed(true)
-    setAwake(false)
-  }, [])
-
-  const moveFocus = useCallback((index: number) => {
-    focusRef.current = index
-    setFocusIndex(index)
-  }, [])
-
-  // Pending target while the user scrubs; null when the clock should show real time.
-  const [scrub, setScrub] = useState<number | null>(null)
-  // Where the user was when the scrub began.
-  const [scrubFrom, setScrubFrom] = useState<number | null>(null)
-  const scrubRef = useRef<number | null>(null)
-  const committedRef = useRef(false) // the jump has been requested: too late to cancel
-  const [confirmed, setConfirmed] = useState(false) // the same, for the screen
-  const commitTimer = useRef<number | undefined>(undefined)
-  const [seekEnds, setSeekEnds] = useState(0) // counts finished seeks; the bar re-places its knob on each
-  const endScrub = useCallback(() => {
-    setSeekEnds(n => n + 1)
-    window.clearTimeout(commitTimer.current)
-    committedRef.current = false
-    setConfirmed(false)
-    scrubRef.current = null
-    setScrub(null)
-    setScrubFrom(null)
-  }, [])
-  const stageSeek = useCallback((delta: number) => {
-    const p = player.current
-    // Ignore seeking until the saved position has been applied, otherwise the
-    // resume would land on top of (or be replaced by) what the user just did.
-    if (!p || isLive || (resumeAt > 5 && !resumed.current)) return
-    window.clearTimeout(commitTimer.current)
-    committedRef.current = false // a new press makes it something that can be cancelled again
-    setConfirmed(false)
-    if (scrubRef.current == null) setScrubFrom(p.currentTime)
-    const base = scrubRef.current ?? p.currentTime
-    // A jump to the very end would end the film (and autoplay the next episode): stop just short of it,
-    // unless playback is already past that point, where a forward press mustn't go backwards.
-    const end = Number.isFinite(p.duration) ? Math.max(p.duration - END_MARGIN, base) : Infinity
-    scrubRef.current = Math.min(end, Math.max(0, base + delta))
-    setScrub(scrubRef.current)
-  }, [isLive, resumeAt])
-  // `delay` 0 jumps now: OK on the bar confirms a pending seek without waiting.
-  const commitSeek = useCallback((delay = COMMIT_DELAY_MS) => {
-    window.clearTimeout(commitTimer.current)
-    commitTimer.current = window.setTimeout(() => {
-      const p = player.current
-      const target = scrubRef.current
-      if (!p || target == null) return
-      p.currentTime = target
-      committedRef.current = true
-      setConfirmed(true)
-      // Keep showing the target until the seek lands (or give up if it never does).
-      commitTimer.current = window.setTimeout(endScrub, 8000)
-    }, delay)
-  }, [endScrub])
-  useEffect(() => () => window.clearTimeout(commitTimer.current), [])
-
-  // Back while a seek is still waiting to be confirmed drops it and stays on the same spot,
-  // instead of leaving the player. Once the jump has been requested, Back works as usual.
-  // After that, Back hides the "Up next" card if it is showing.
-  // Otherwise the first Back only asks "again to exit"; a second one within a few seconds leaves.
-  // (Not while a menu or the error screen is up: there Back means just that.)
-  useEffect(() => {
-    let timer = 0
-    let asked = false
-    setBackHandler(() => {
-      if (scrubRef.current != null && !committedRef.current) { endScrub(); return true }
-      if (upNextRef.current) { setUpNext(false); setUpNextDismissed(true); return true }
-      if (panelOpenRef.current || errorRef.current || asked) return false
-      asked = true
-      setExitNotice(true)
-      timer = window.setTimeout(() => { asked = false; setExitNotice(false) }, EXIT_NOTICE_MS)
-      return true
-    })
-    return () => { setBackHandler(null); window.clearTimeout(timer) }
-  }, [endScrub])
-
-  // Buttons and the remote's rewind / fast-forward keys use the same staged jump as the arrows,
-  // so every kind of seek shows where it is going before it happens.
-  const seekBy = useCallback((delta: number) => { stageSeek(delta); commitSeek() }, [stageSeek, commitSeek])
-  // A click on the bar: jump to that point, with the same feedback.
-  const seekTo = useCallback((target: number) => {
-    const p = player.current
-    if (!p || isLive || !Number.isFinite(p.duration)) return
-    stageSeek(target - (scrubRef.current ?? p.currentTime))
-    commitSeek()
-  }, [isLive, stageSeek, commitSeek])
-
   const togglePlay = useCallback(() => {
     const p = player.current
     if (!p) return
@@ -329,6 +131,7 @@ function PlayerView({ search }: { search: PlayerSearch }) {
   }, [])
 
   // Pointer remotes jitter constantly; only a real movement counts as activity.
+  const { wake } = controls
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     const { x, y } = lastPointer.current
     if (Math.hypot(e.clientX - x, e.clientY - y) < 12) return
@@ -361,43 +164,12 @@ function PlayerView({ search }: { search: PlayerSearch }) {
     }, { replace: true })
   }, [nextEpisode, play])
 
-  // Show the controls when playback opens, and drop every timer on the way out.
-  // (Kept apart from the key handler below: that effect re-subscribes whenever
-  // its callbacks change, and must not re-show the controls each time.)
-  useEffect(() => {
-    wake() // eslint-disable-line react-hooks/set-state-in-effect -- opening the player shows the controls
-    return () => {
-      window.clearTimeout(hideTimer.current)
-    }
-  }, [wake])
-
-  // The TV doesn't report the live edge (its seekable range is stale), so estimate:
-  // a stream starts about LIVE_START_LAG behind, and every second the clock stops
-  // while real time keeps going (pause, buffering) adds to it.
-  const liveBase = useRef<{ wall: number; media: number } | null>(null)
-  useEffect(() => {
-    liveBase.current = null
-    if (!isLive) return
-    const t = window.setInterval(() => {
-      const video = document.querySelector('video')
-      if (!video || video.currentTime <= 0) return
-      const base = liveBase.current ??= { wall: Date.now(), media: video.currentTime }
-      const drift = (Date.now() - base.wall) / 1000 - (video.currentTime - base.media)
-      setBehind(drift > LIVE_DRIFT_MIN ? Math.round((LIVE_START_LAG + drift) / 5) * 5 : 0)
-    }, 1000)
-    return () => window.clearInterval(t)
-  }, [isLive, attempt, currentUrl])
-
-  // Reload the stream: it comes back at the live edge.
-  const goLive = useCallback(() => {
-    liveBase.current = null
-    setBehind(0)
-    setAttempt(a => a + 1)
-  }, [])
-
   // Remote control.
+  const { moveFocus, hide, focused, isVisible, isAwake } = controls
+  const { by: seekBy, hold: seekHold, release, confirmNow } = seek
+  const { isOpen: isPanelOpen, open: openPanel } = panel
+  const { isBehind, catchUp } = live
   useEffect(() => {
-    const seek = seekBy
     // OK on a focused control button.
     const activate = (index: number) => {
       if (index === 0) seekBy(-SEEK_STEP)
@@ -405,29 +177,9 @@ function PlayerView({ search }: { search: PlayerSearch }) {
       else if (index === 2) seekBy(SEEK_STEP)
       else openPanel(index === 3 ? 'speed' : 'tracks')
     }
-    // Press: one 10s jump. Held: paced, accelerating jumps (see holdStep).
-    const seekHeld = (direction: 1 | -1, e: KeyboardEvent) => {
-      const p = player.current
-      if (!p) return
-      const now = performance.now()
-      const h = hold.current
-      if (!e.repeat) {
-        hold.current = { since: now, last: now }
-        return stageSeek(direction * 10)
-      }
-      const heldFor = now - h.since
-      if (heldFor < HOLD_DELAY_MS || now - h.last < HOLD_INTERVAL_MS) return
-      // holdStep is the distance per quarter second; scale it to the time since the last step.
-      const step = holdStep(heldFor, p.duration || 0) * Math.min(now - h.last, 250) / 250
-      h.last = now
-      stageSeek(direction * step)
-    }
-    const onKeyUp = () => {
-      hold.current = { since: 0, last: 0 }
-      if (scrubRef.current != null) commitSeek()
-    }
+    const onKeyUp = (e: KeyboardEvent) => release(e.keyCode === KEY.left || e.keyCode === KEY.right)
     const onKey = (e: KeyboardEvent) => {
-      if (panelOpenRef.current) return
+      if (isPanelOpen()) return
       // Focused buttons (error overlay): the spatial-navigation library swallows
       // OK before the browser can click them, so click them here.
       if (e.target instanceof HTMLButtonElement) {
@@ -441,17 +193,17 @@ function PlayerView({ search }: { search: PlayerSearch }) {
       }
       const p = player.current
       if (!p) return
+      const focus = focused()
       let handled = true
       switch (e.keyCode) {
         case KEY.enter:
-          if (upNext) playNextEpisode()
-          else if (isLive) { if (awakeRef.current || p.paused) togglePlay() } // hidden overlay: OK only brings it up (every handled key does)
+          if (isLive) { if (isAwake() || p.paused) togglePlay() } // hidden overlay: OK only brings it up (every handled key does)
           // Controls away: OK plays or pauses, and the controls that come up have the play button focused.
-          else if (!visibleRef.current) { togglePlay(); moveFocus(PLAY_BUTTON) }
+          else if (!isVisible()) { togglePlay(); moveFocus(PLAY_BUTTON) }
           // With the controls showing, OK does what the focused control does; on the bar, nothing.
-          else if (focusRef.current === TIME_LABEL) toggleRemaining()
-          else if (focusRef.current >= 0) activate(focusRef.current)
-          else if (scrubRef.current != null) commitSeek(0) // on the bar, OK confirms a seek in progress right away
+          else if (focus === TIME_LABEL) toggleRemaining()
+          else if (focus >= 0) activate(focus)
+          else confirmNow() // on the bar, OK confirms a seek in progress right away
           break
         case KEY.space: case KEY.playPause: togglePlay(); break
         case KEY.play: p.play(); break
@@ -459,34 +211,35 @@ function PlayerView({ search }: { search: PlayerSearch }) {
         case KEY.stop: stopPlay(); break
         case KEY.left:
           if (isLive) break
-          else if (!visibleRef.current) { moveFocus(BAR); seekHeld(-1, e) } // hidden controls: the arrows seek, and the bar takes focus so the next press seeks too
-          else if (focusRef.current === TIME_LABEL) break
-          else if (focusRef.current === 0) moveFocus(TIME_LABEL)
-          else if (focusRef.current >= 0) moveFocus(focusRef.current - 1)
-          else seekHeld(-1, e)
+          else if (!isVisible()) { moveFocus(BAR); seekHold(-1, e) } // hidden controls: the arrows seek, and the bar takes focus so the next press seeks too
+          else if (focus === TIME_LABEL) break
+          else if (focus === 0) moveFocus(TIME_LABEL)
+          else if (focus >= 0) moveFocus(focus - 1)
+          else seekHold(-1, e)
           break
         case KEY.right:
-          if (isLive) { if (behindRef.current) goLive(); break } // Right = catch up to live
-          if (!visibleRef.current) { moveFocus(BAR); seekHeld(1, e) }
-          else if (focusRef.current === TIME_LABEL) moveFocus(0)
-          else if (focusRef.current >= 0) moveFocus(Math.min(CONTROL_COUNT - 1, focusRef.current + 1))
-          else seekHeld(1, e)
+          if (isLive) { if (isBehind()) catchUp(); break } // Right = catch up to live
+          if (!isVisible()) { moveFocus(BAR); seekHold(1, e) }
+          else if (focus === TIME_LABEL) moveFocus(0)
+          else if (focus >= 0) moveFocus(Math.min(BUTTON_COUNT - 1, focus + 1))
+          else seekHold(1, e)
           break
-        case KEY.rewind: seek(-30); break
-        case KEY.fastForward: if (isLive) { if (behindRef.current) goLive() } else seek(30); break
+        case KEY.rewind: seekBy(-30); break
+        case KEY.fastForward: if (isLive) { if (isBehind()) catchUp() } else seekBy(30); break
         // On live TV the arrows only wake the overlay (too easy to zap by accident);
         // channels change with the remote's CH keys.
         case KEY.channelUp: case KEY.pageUp: if (isLive && !e.repeat) zap(-1); break
         case KEY.up:
-          if (isLive || !visibleRef.current) break // hidden: Up just brings the controls up (handled keys do)
-          else if (focusRef.current >= 0 || focusRef.current === TIME_LABEL) moveFocus(BAR)
-          else { hideControls(); return e.preventDefault() } // nothing above the bar: Up puts the controls away
+          if (isLive) break
+          else if (!isVisible()) moveFocus(PLAY_BUTTON) // hidden: Up or Down brings the controls up (handled keys do) with the play button focused
+          else if (focus >= 0 || focus === TIME_LABEL) moveFocus(BAR)
+          else { hide(); return e.preventDefault() } // nothing above the bar: Up puts the controls away
           break
         case KEY.down:
           if (isLive) break
-          else if (!visibleRef.current) break // hidden: Down just brings the controls up (handled keys do)
-          else if (focusRef.current === BAR) moveFocus(PLAY_BUTTON)
-          else { hideControls(); return e.preventDefault() } // nothing below the buttons: Down puts the controls away
+          else if (!isVisible()) moveFocus(PLAY_BUTTON)
+          else if (focus === BAR) moveFocus(PLAY_BUTTON)
+          else { hide(); return e.preventDefault() } // nothing below the buttons: Down puts the controls away
           break
         case KEY.channelDown: case KEY.pageDown: if (isLive && !e.repeat) zap(1); break
         default: handled = false
@@ -502,12 +255,12 @@ function PlayerView({ search }: { search: PlayerSearch }) {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('keyup', onKeyUp)
     }
-  }, [isLive, upNext, stopPlay, wake, seekBy, stageSeek, commitSeek, togglePlay, toggleRemaining, moveFocus, hideControls, openPanel, zap, playNextEpisode, goLive])
+  }, [isLive, stopPlay, wake, seekBy, seekHold, release, confirmNow, togglePlay, toggleRemaining, moveFocus, hide, focused, isVisible, isAwake, isPanelOpen, openPanel, isBehind, catchUp, zap])
 
   // Error screen: Left/Right/OK pick between Retry and Back. Capture phase, so the
   // spatial-navigation library (which listens first and swallows keys) can't eat them.
   useEffect(() => {
-    if (!error) return
+    if (!health.error) return
     const onKey = (e: KeyboardEvent) => {
       if (e.keyCode !== KEY.left && e.keyCode !== KEY.right && e.keyCode !== KEY.enter) return
       const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-error-actions] button'))
@@ -520,46 +273,12 @@ function PlayerView({ search }: { search: PlayerSearch }) {
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [error])
-
-  function resumeFromLatest() {
-    const at = latest.current.position
-    if (isLive || at <= 5) return
-    resumed.current = false
-    glideArmed.current = false
-    setBarGlides(false)
-    setResumeAt(at)
-  }
-
-  // The TV's media pipeline doesn't always report a dead stream (no error,
-  // just an endless spinner), so a start that takes too long counts as one.
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      if (!hasData()) handleError('The stream took too long to start.')
-    }, isLive ? START_TIMEOUT_MS * 3 : START_TIMEOUT_MS)
-    return () => window.clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempt, currentUrl])
-
-  function handleError(message: string) {
-    // Streams drop often; reconnect a few times before giving up. A movie
-    // picks up where it broke instead of starting over.
-    if (reconnects.current < MAX_RECONNECTS) {
-      reconnects.current += 1
-      resumeFromLatest()
-      setReconnecting(true)
-      window.setTimeout(() => setAttempt(a => a + 1), 500)
-      return
-    }
-    setReconnecting(false)
-    setError(message || 'This stream could not be played.')
-  }
+  }, [health.error])
 
   const src = { src: processUrl(currentUrl, isLive), type: getType(processUrl(currentUrl, isLive)) }
   // Controls and title stay up while paused (VOD), otherwise they time out.
-  const visible = awake || (paused && !dismissed) || !!error || panelOpen || scrub !== null
-  visibleRef.current = visible
-  const now = Date.now() / 1000
+  const visible = controls.visible
+  const now = useClock() / 1000
   const epgProgress = epg.current ? Math.min(100, Math.max(0, ((now - epg.current.start) / (epg.current.end - epg.current.start)) * 100)) : 0
 
   return (
@@ -581,46 +300,23 @@ function PlayerView({ search }: { search: PlayerSearch }) {
         streamType={isLive ? 'live' : 'on-demand'}
         className="h-full w-full bg-black font-sans"
         onProviderChange={onProviderChange}
-        onCanPlay={() => {
-          // Vidstack can report canplay for a source that never loaded.
-          if (!hasData()) return
-          setError(null)
-          setReconnecting(false)
-          reconnects.current = 0
-        }}
-        onSeeked={() => {
-          const p = player.current
-          if (scrubRef.current != null && p && Math.abs(p.currentTime - scrubRef.current) < 3) endScrub()
-        }}
+        onCanPlay={health.playable}
+        onSeeked={seek.landed}
         onPlay={() => setPaused(false)}
-        onPause={() => { setPaused(true); persist() }}
+        onPause={() => { setPaused(true); progress.persist() }}
         onTimeUpdate={({ currentTime }) => {
-          // Until the saved position is applied the clock is still near 0; saving
-          // that would overwrite where the user actually was.
-          if (resumeAt > 5 && !resumed.current) return
-          // Gliding starts only when the stream has loaded around the saved position and the clock is there.
-          if (!glideArmed.current && currentTime >= resumeAt - 3) {
-            const video = document.querySelector('video')
-            if (video && video.readyState >= 3 && video.buffered.length > 0 && video.buffered.end(video.buffered.length - 1) >= currentTime) {
-              glideArmed.current = true
-              window.setTimeout(() => setBarGlides(true), 400) // lets the buffered range settle too
-            }
-          }
-          const duration = player.current?.duration ?? 0
-          latest.current = { position: currentTime, duration }
-          if (Date.now() - lastSaved.current > 5000) {
-            lastSaved.current = Date.now()
-            persist()
-          }
-          const soon = settings.upNextCard && !upNextDismissed && !!nextEpisode && duration > 0 && duration - currentTime < UP_NEXT_SECONDS
-          if (soon !== upNext) setUpNext(soon)
+          // Until the saved position is applied the clock is still near 0; saving that would
+          // overwrite where the user actually was.
+          if (!resume.settled()) return
+          resume.reached(currentTime)
+          progress.record(currentTime, player.current?.duration ?? 0)
         }}
-        onEnded={() => { persist(); if (nextEpisode && settings.autoplayNext) playNextEpisode(); else stopPlay() }}
-        onError={e => handleError(e.message)}
+        onEnded={() => { progress.persist(); if (nextEpisode && settings.autoplayNext) playNextEpisode(); else stopPlay() }}
+        onError={e => health.fail(e.message)}
       >
         <MediaProvider className="size-full [&>video]:size-full [&>video]:object-contain" />
 
-        {!error && <Spinner reconnecting={reconnecting} retry={reconnects.current} onStall={() => handleError('Playback stalled.')} />}
+        {!health.error && <Spinner reconnecting={health.reconnecting} retry={health.retries} onStall={() => health.fail('Playback stalled.')} />}
 
         {/* Title + controls: one layer that fades in on activity and out after a few seconds. */}
         <div className={cn('absolute inset-0 transition-opacity duration-300', visible ? 'opacity-100' : 'pointer-events-none opacity-0')}>
@@ -630,22 +326,22 @@ function PlayerView({ search }: { search: PlayerSearch }) {
             {streamSize && (
               <span className="mb-3 inline-block rounded-md bg-white px-3 py-0.5 text-sm font-semibold text-black">{formatSize(streamSize)}</span>
             )}
-            <div className={cn('mb-6 flex items-center gap-4 transition-opacity duration-150', scrub !== null && 'opacity-30')}>
+            <div className={cn('mb-6 flex items-center gap-4 transition-opacity duration-150', seek.scrub !== null && 'opacity-30')}>
               {isLive && (
-                <span className={cn('flex items-center rounded-md px-3 py-1.5 text-sm font-semibold tracking-wider text-white', behind || paused ? 'bg-white/20' : 'bg-red-600')}>
-                  <span className={cn('mr-2.5 size-2 rounded-full bg-white', !behind && !paused && 'animate-pulse')} />
-                  {behind ? `~${behind}s BEHIND` : paused ? 'PAUSED' : 'LIVE'}
+                <span className={cn('flex items-center rounded-md px-3 py-1.5 text-sm font-semibold tracking-wider text-white', live.behind || paused ? 'bg-white/20' : 'bg-red-600')}>
+                  <span className={cn('mr-2.5 size-2 rounded-full bg-white', !live.behind && !paused && 'animate-pulse')} />
+                  {live.behind ? `~${live.behind}s BEHIND` : paused ? 'PAUSED' : 'LIVE'}
                 </span>
               )}
               <h1 dir="auto" className="truncate text-4xl font-semibold text-white">{name}</h1>
               {isLive && channelIndex >= 0 && <span className="text-2xl text-white/50">CH {channelIndex + 1}</span>}
               {search.channelGroup && <span className="truncate text-xl text-white/50">{search.channelGroup}</span>}
-              {isLive && behind > 0 && (
+              {isLive && live.behind > 0 && (
                 <div className="flex flex-1 justify-end">
                   <button
                     type="button"
                     tabIndex={-1}
-                    onClick={goLive}
+                    onClick={live.catchUp}
                     className="tv-focus flex items-center rounded-full bg-white py-3 pl-6 pr-5 text-xl font-semibold text-black"
                   >
                     <span className="mr-3 size-2.5 rounded-full bg-red-600" />
@@ -675,25 +371,25 @@ function PlayerView({ search }: { search: PlayerSearch }) {
               </div>
             ) : (
               <>
-                <ProgressBar glide={barGlides} seekEnds={seekEnds} scrub={scrub} from={scrubFrom} focused={focusIndex === BAR} onSeek={fraction => {
+                <ProgressBar glide={resume.glides} seekEnds={seek.ended} scrub={seek.scrub} from={seek.scrubFrom} focused={controls.focus === BAR} onSeek={fraction => {
                   const p = player.current
-                  if (p && Number.isFinite(p.duration)) seekTo(fraction * p.duration)
+                  if (p && Number.isFinite(p.duration)) seek.to(fraction * p.duration)
                 }} />
                 {/* Three equal-width zones keep the buttons exactly centred. */}
                 <div className="mt-5 flex items-center">
                   <div className="flex-1">
-                    <TimeLabel remaining={showRemaining} focused={focusIndex === TIME_LABEL} onToggle={toggleRemaining} />
+                    <TimeLabel remaining={showRemaining} focused={controls.focus === TIME_LABEL} onToggle={toggleRemaining} />
                   </div>
                   <div className="flex flex-none items-center gap-3">
-                    <RoundButton label="Back 10 seconds" focused={focusIndex === 0} onClick={() => seekBy(-SEEK_STEP)}><Replay10Icon className="size-9" /></RoundButton>
-                    <RoundButton label={paused ? 'Play' : 'Pause'} focused={focusIndex === 1} onClick={togglePlay} large>
+                    <RoundButton label="Back 10 seconds" focused={controls.focus === 0} onClick={() => seek.by(-SEEK_STEP)}><Replay10Icon className="size-9" /></RoundButton>
+                    <RoundButton label={paused ? 'Play' : 'Pause'} focused={controls.focus === 1} onClick={togglePlay} large>
                       {paused ? <PlayIcon className="size-9" /> : <PauseIcon className="size-9" />}
                     </RoundButton>
-                    <RoundButton label="Forward 10 seconds" focused={focusIndex === 2} onClick={() => seekBy(SEEK_STEP)}><Forward10Icon className="size-9" /></RoundButton>
+                    <RoundButton label="Forward 10 seconds" focused={controls.focus === 2} onClick={() => seek.by(SEEK_STEP)}><Forward10Icon className="size-9" /></RoundButton>
                   </div>
                   <div className="flex flex-1 items-center justify-end gap-3">
-                    <RoundButton label="Playback speed" focused={focusIndex === 3} onClick={() => openPanel('speed')}><span className="text-xl font-bold">{rate}×</span></RoundButton>
-                    <RoundButton label="Audio and subtitles" focused={focusIndex === 4} onClick={() => openPanel('tracks')}><CaptionsIcon className="size-9" /></RoundButton>
+                    <RoundButton label="Playback speed" focused={controls.focus === 3} onClick={() => panel.open('speed')}><span className="text-xl font-bold">{rate}×</span></RoundButton>
+                    <RoundButton label="Audio and subtitles" focused={controls.focus === 4} onClick={() => panel.open('tracks')}><CaptionsIcon className="size-9" /></RoundButton>
                   </div>
                 </div>
               </>
@@ -701,21 +397,7 @@ function PlayerView({ search }: { search: PlayerSearch }) {
           </div>
         </div>
 
-        {/* How far the jump goes, large and on the picture, where the eyes already are. */}
-        {scrub !== null && scrubFrom !== null && (
-          <div className="pointer-events-none absolute left-1/2 top-[34%] z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3">
-            <div className="rounded-full bg-black/60 px-6 py-2.5 text-4xl font-semibold tabular-nums text-white">
-              {formatDelta(scrub - scrubFrom)}
-            </div>
-            {/* Only while there is still time to change your mind. */}
-            {!confirmed && (
-              <div className="rounded-full bg-black/50 px-5 py-1.5 text-xl text-white/80">
-                <span className="font-semibold text-white">Back</span> to cancel
-                {focusIndex === BAR && <> · <span className="font-semibold text-white">OK</span> to go now</>}
-              </div>
-            )}
-          </div>
-        )}
+        <SeekOverlay scrub={seek.scrub} from={seek.scrubFrom} sent={seek.sent} okWorks={controls.focus === BAR} />
 
         {exitNotice && (
           <div className="pointer-events-none absolute left-1/2 top-12 z-30 -translate-x-1/2 rounded-full bg-black/70 px-7 py-3 text-2xl font-medium text-white">
@@ -723,17 +405,17 @@ function PlayerView({ search }: { search: PlayerSearch }) {
           </div>
         )}
 
-        {upNext && nextEpisode && <UpNextCard episode={nextEpisode} autoplay={settings.autoplayNext} raised={visible} />}
+        {nextEpisode && <UpNextCard episode={nextEpisode} enabled={settings.upNextCard} autoplay={settings.autoplayNext} raised={visible} onPlay={playNextEpisode} />}
 
-        {panel === 'speed' && <SpeedMenu onClose={closePanel} rate={rate} onRate={setRate} />}
-        {panel === 'tracks' && <TrackMenu onClose={closePanel} />}
+        {panel.panel === 'speed' && <SpeedMenu onClose={panel.close} rate={rate} onRate={setRate} />}
+        {panel.panel === 'tracks' && <TrackMenu onClose={panel.close} />}
 
-        {error && (
+        {health.error && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-6 bg-black text-center">
             <p className="text-2xl text-white">Couldn't play this stream</p>
-            <p className="max-w-xl text-base text-white/50">{error}</p>
+            <p className="max-w-xl text-base text-white/50">{health.error}</p>
             <div data-error-actions className="flex gap-4">
-              <button autoFocus onClick={() => { setError(null); reconnects.current = 0; resumeFromLatest(); setAttempt(a => a + 1) }} className={cn(buttonClass('primary'), 'focus:ring-4 focus:ring-[#1a98ff]')}>
+              <button autoFocus onClick={health.retry} className={cn(buttonClass('primary'), 'focus:ring-4 focus:ring-[#1a98ff]')}>
                 <RetryIcon className="mr-3 size-6" />
                 Retry
               </button>
@@ -746,365 +428,5 @@ function PlayerView({ search }: { search: PlayerSearch }) {
         )}
       </MediaPlayer>
     </main>
-  )
-}
-
-// "Up next": the next episode's picture and name, what the keys do, and (with autoplay on)
-// how long until it starts, which is when the current episode ends.
-function UpNextCard({ episode, autoplay, raised }: { episode: { name: string; image?: string }; autoplay: boolean; raised: boolean }) {
-  const currentTime = useMediaState('currentTime')
-  const duration = useMediaState('duration')
-  const [broken, setBroken] = useState(false)
-  const left = Number.isFinite(duration) ? Math.max(0, duration - currentTime) : UP_NEXT_SECONDS
-  const key = 'rounded-md bg-white/15 px-2 py-0.5 text-sm font-semibold text-white'
-  return (
-    // Just above the controls while they show; down in the corner when they are away.
-    <div className={cn('absolute right-16 z-20 w-[32rem] overflow-hidden rounded-2xl bg-[#111418]/95 shadow-[0_24px_60px_rgba(0,0,0,0.6)] ring-1 ring-white/10 transition-[bottom] duration-300', raised ? 'bottom-[17rem]' : 'bottom-12')}>
-      <div className="flex">
-        <Ratio ratio={WIDE} className="w-52 flex-none bg-[#1b2026]" innerClassName="flex items-center justify-center">
-          {/* Providers' pictures often fail to load: a play mark stands in for them. */}
-          {episode.image && !broken
-            ? <img src={episode.image} alt="" decoding="async" onError={() => setBroken(true)} className="size-full object-cover" />
-            : <PlayIcon className="size-12 text-white/50" />}
-        </Ratio>
-        <div className="flex min-w-0 flex-1 flex-col justify-center px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-white/50">
-            Up next{autoplay && left > 0 && <span className="normal-case tracking-normal"> · starts in {Math.ceil(left)}s</span>}
-          </p>
-          <p className="mt-1 line-clamp-2 text-xl font-semibold text-white">{episode.name}</p>
-          <div className="mt-3 flex items-center gap-5 text-sm text-white/60">
-            <span className="flex items-center gap-2"><span className={key}>OK</span>Play now</span>
-            <span className="flex items-center gap-2"><span className={key}>Back</span>Hide</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-const clamp = (n: number) => Math.min(100, Math.max(0, n))
-
-function formatTime(seconds: number) {
-  if (!Number.isFinite(seconds) || seconds < 0) return '--:--'
-  const total = Math.floor(seconds)
-  const h = Math.floor(total / 3600)
-  const m = Math.floor((total % 3600) / 60)
-  const sec = String(total % 60).padStart(2, '0')
-  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`
-}
-
-// While seeking, the target moves in steps; sliding each one linearly makes them run into each other
-// instead of stopping and starting (an ease-out would pause at every step).
-const SCRUB_GLIDE = 'transition-[width,left] duration-150 ease-linear'
-
-// "+40s", "−2m 10s", "+1h 5m": how far the jump goes from where the user was.
-function formatDelta(seconds: number) {
-  const total = Math.round(Math.abs(seconds))
-  const h = Math.floor(total / 3600)
-  const m = Math.floor((total % 3600) / 60)
-  const sec = total % 60
-  const parts = h > 0 ? [`${h}h`, m ? `${m}m` : ''] : m > 0 ? [`${m}m`, sec ? `${sec}s` : ''] : [`${sec}s`]
-  return `${seconds < 0 ? '−' : '+'}${parts.filter(Boolean).join(' ')}`
-}
-
-// Not filled until the duration is known: before metadata arrives time is 0/0,
-// which would otherwise read as 100%.
-// While scrubbing it shows three things at once: where playback is now (a tick), where the
-// jump will land (the knob and a bubble with its time), and the stretch between.
-function ProgressBar({ onSeek, focused, scrub, from, glide, seekEnds }: {
-  glide: boolean
-  seekEnds: number
-  onSeek: (fraction: number) => void
-  focused: boolean
-  scrub: number | null
-  from: number | null
-}) {
-  const mediaTime = useMediaState('currentTime')
-  const duration = useMediaState('duration')
-  const bufferedEnd = useMediaState('bufferedEnd')
-  const ready = Number.isFinite(duration) && duration > 0
-  const scrubbing = scrub !== null && from !== null && ready
-  const currentTime = scrub ?? mediaTime
-  const pct = ready ? clamp((currentTime / duration) * 100) : 0
-  const fromPct = scrubbing ? clamp((from / duration) * 100) : 0
-  const lo = Math.min(pct, fromPct)
-  const hi = Math.max(pct, fromPct)
-
-  return (
-    <div
-      className="group relative flex h-8 w-full cursor-pointer items-center"
-      onClick={e => {
-        const rect = e.currentTarget.getBoundingClientRect()
-        onSeek(Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)))
-      }}
-    >
-      <div className={cn('relative w-full overflow-hidden rounded-full bg-white/20 transition-[height] duration-150', focused || scrubbing ? 'h-3' : 'h-2')}>
-        <div className={cn('absolute inset-0 origin-left bg-white/30', glide && 'transition-transform duration-500 ease-linear')} style={{ transform: `scaleX(${ready ? clamp((bufferedEnd / duration) * 100) / 100 : 0})` }} />
-        {scrubbing ? (
-          <>
-            {/* Played up to the nearer of the two points; the stretch being jumped over is tinted. */}
-            <div className={cn('absolute inset-y-0 left-0 bg-white', SCRUB_GLIDE)} style={{ width: `${lo}%` }} />
-            <div className={cn('absolute inset-y-0 bg-[#1a98ff]', SCRUB_GLIDE)} style={{ left: `${lo}%`, width: `${hi - lo}%` }} />
-          </>
-        ) : (
-          <div className={cn('absolute inset-0 origin-left bg-white', glide && 'transition-transform duration-300 ease-linear')} style={{ transform: `scaleX(${pct / 100})` }} />
-        )}
-      </div>
-
-      {scrubbing && (
-        <>
-          {/* Where playback is until the jump happens. */}
-          <div className="pointer-events-none absolute top-1/2 h-6 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white" style={{ left: `${fromPct}%` }} />
-          <div className={cn('pointer-events-none absolute bottom-full z-10 mb-1 transition-[left,transform] duration-150 ease-linear')} style={{ left: `${pct}%`, transform: `translateX(-${pct}%)` }}>
-            <div className="flex flex-col items-center rounded-xl bg-[#111418] px-5 py-2.5 shadow-[0_12px_32px_rgba(0,0,0,0.6)]">
-              <span className="text-3xl font-semibold tabular-nums text-white">{formatTime(scrub)}</span>
-            </div>
-          </div>
-        </>
-      )}
-      {/* The knob shows where the playhead is, and grows when the bar has focus or is being scrubbed. */}
-      {ready && (
-        <div
-          // A new element each time a seek ends: the fill snaps back to the playing position (a cancelled
-          // seek, say), so the knob must be placed there too instead of gliding back on its own.
-          key={seekEnds}
-          className={cn(
-            'pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_0_3px_rgba(0,0,0,0.35)]',
-            focused || scrubbing ? 'size-6' : 'size-4',
-          )}
-          // Position and size have their own timing: the position follows the fill under it (so they never
-          // drift apart), while the size change is a short quick one that doesn't depend on how it is moving.
-          style={{
-            left: `${pct}%`,
-            transition: `left ${scrubbing ? 150 : glide ? 300 : 0}ms linear, width 150ms ease-out, height 150ms ease-out`,
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
-// Read at render time on purpose: the finish time is wall clock plus what is left.
-const wallClock = () => Date.now()
-const finishClock = (at: number) => new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-
-// Always the real playing time: while seeking, the target lives in the bubble on the bar and this
-// only changes once the jump has actually happened.
-function TimeLabel({ className, remaining, focused, onToggle }: {
-  className?: string
-  remaining: boolean
-  focused: boolean
-  onToggle: () => void
-}) {
-  const currentTime = useMediaState('currentTime')
-  const duration = useMediaState('duration')
-  const rate = useMediaState('playbackRate')
-  const ready = Number.isFinite(duration) && duration > 0
-  // While paused nothing re-renders, but the finish time keeps moving: refresh it now and then.
-  const [, tick] = useState(0)
-  useEffect(() => {
-    const t = window.setInterval(() => tick(n => n + 1), 20_000)
-    return () => window.clearInterval(t)
-  }, [])
-  const left = ready ? Math.max(0, duration - currentTime) : 0
-  const endsAt = ready ? wallClock() + (left / (rate || 1)) * 1000 : 0
-
-  return (
-    <div className={cn('flex items-center font-medium tabular-nums', className)}>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-label={remaining ? 'Showing time remaining' : 'Showing time elapsed'}
-        className={cn('-ml-3 rounded-lg px-3 py-1 transition-colors duration-150', focused ? 'bg-white' : 'hover:bg-white/10')}
-      >
-        <span className={cn('text-4xl', focused ? 'text-black' : 'text-white')}>
-          {ready ? (remaining ? `-${formatTime(left)}` : formatTime(currentTime)) : formatTime(0)}
-        </span>
-        <span className={cn('mx-3 text-3xl', focused ? 'text-black/40' : 'text-white/30')}>/</span>
-        <span className={cn('text-3xl', focused ? 'text-black/70' : 'text-white/60')}>{ready ? formatTime(duration) : '--:--'}</span>
-      </button>
-      {ready && <span className="ml-5 flex-none text-xl text-white/50">Ends {finishClock(endsAt)}</span>}
-    </div>
-  )
-}
-
-// True once the stream has delivered anything (HLS can buffer before the TV marks it ready).
-function hasData() {
-  const video = document.querySelector('video')
-  return !!video && (video.readyState >= 2 || video.currentTime > 0 || (video.buffered.length > 0 && video.buffered.end(0) > 0))
-}
-
-// A frozen picture that nothing reports: after this long without the clock moving
-// and without anything new arriving the stream is treated as dropped and reconnected.
-const STALL_MS = 25_000
-
-function Spinner({ reconnecting, retry, onStall }: { reconnecting: boolean; retry: number; onStall: () => void }) {
-  // The TV's media pipeline leaves canPlay/waiting/seeking stale, so judge from
-  // the video element itself: loading is shown exactly while the clock isn't
-  // advancing (and the video isn't paused or finished). Data buffering ahead
-  // doesn't count against it: measured on the TV, a slow start sits at
-  // readyState 2 with the buffer growing while nothing plays.
-  const [stuck, setStuck] = useState(true)
-  const stallRef = useRef(onStall)
-  useEffect(() => { stallRef.current = onStall })
-  useEffect(() => {
-    let last = 0
-    let lastMove = Date.now()
-    let lastBuffered = 0
-    let stuckSince = 0
-    const t = window.setInterval(() => {
-      const video = document.querySelector('video')
-      const now = video?.currentTime ?? 0
-      if (now !== last) { last = now; lastMove = Date.now() }
-      const buffered = video && video.buffered.length ? video.buffered.end(video.buffered.length - 1) : 0
-      const idle = !!video && (video.paused || video.ended)
-      const frozen = !idle && Date.now() - lastMove >= 1500
-      setStuck(frozen || !video)
-      // Still downloading is slow, not dead: only a frozen clock with a frozen buffer counts.
-      if (buffered > lastBuffered + 0.1) stuckSince = 0
-      lastBuffered = buffered
-      if (!frozen) { stuckSince = 0; return }
-      stuckSince ||= Date.now()
-      if (Date.now() - stuckSince > STALL_MS) { stuckSince = 0; stallRef.current() }
-    }, 500)
-    return () => window.clearInterval(t)
-  }, [])
-  const show = reconnecting || stuck
-
-  // Plain loading stays wordless; only a dropped connection explains itself.
-  return (
-    <div className={cn('pointer-events-none absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-300', show ? 'opacity-100' : 'opacity-0')}>
-      <div className="size-16 animate-spin rounded-full border-4 border-white/15 border-t-white/90" />
-      {reconnecting && (
-        <>
-          <p className="mt-6 text-2xl font-medium text-white">Connection lost — reconnecting…</p>
-          <p className="mt-2 text-lg text-white/60">Attempt {retry} of {MAX_RECONNECTS}</p>
-        </>
-      )}
-    </div>
-  )
-}
-
-function RoundButton({ label, onClick, large, focused, children }: { label: string; onClick: () => void; large?: boolean; focused?: boolean; children: React.ReactNode }) {
-  return (
-    <button
-      aria-label={label}
-      onClick={onClick}
-      className={cn(
-        'flex items-center justify-center rounded-full transition duration-150 active:scale-95',
-        large ? 'size-20' : 'size-16',
-        focused ? 'scale-110 bg-white text-black' : cn('text-white hover:bg-white/20', large && 'bg-white/15'),
-      )}
-    >
-      {children}
-    </button>
-  )
-}
-
-const MENU = 'absolute bottom-56 right-16 z-20 rounded-xl bg-[#111418]/95 p-3 shadow-[0_24px_60px_rgba(0,0,0,0.6)]'
-
-// Keys while a menu is open: arrows move, OK picks, anything else closes.
-function useMenuKeys(count: number, start: number, vertical: boolean, onPick: (i: number) => void, onClose: () => void) {
-  const [index, setIndex] = useState(start)
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      const prev = vertical ? KEY.up : KEY.left
-      const next = vertical ? KEY.down : KEY.right
-      if (e.keyCode === prev) setIndex(i => Math.max(0, i - 1))
-      else if (e.keyCode === next) setIndex(i => Math.min(count - 1, i + 1))
-      else if (e.keyCode === KEY.enter && count) { onPick(index); onClose() }
-      else if (e.keyCode !== KEY.enter) onClose()
-    }
-    window.addEventListener('keydown', onKey, true)
-    return () => window.removeEventListener('keydown', onKey, true)
-  }, [count, index, vertical, onPick, onClose])
-  return index
-}
-
-function SpeedMenu({ onClose, rate, onRate }: { onClose: () => void; rate: number; onRate: (rate: number) => void }) {
-  const index = useMenuKeys(SPEEDS.length, Math.max(0, SPEEDS.indexOf(rate)), false, i => onRate(SPEEDS[i]), onClose)
-  return (
-    <div className={cn(MENU, 'flex')}>
-      {SPEEDS.map((r, i) => (
-        <div key={r} className={cn(
-          'rounded-full px-5 py-3 text-lg font-semibold',
-          i > 0 && 'ml-1',
-          i === index ? 'bg-white text-black' : r === rate ? 'text-[#1a98ff]' : 'text-white/80',
-        )}>{r}×</div>
-      ))}
-    </div>
-  )
-}
-
-// Language names for the three- and two-letter codes MKV files use.
-const LANGUAGES: Record<string, string> = {
-  ara: 'Arabic', ar: 'Arabic', eng: 'English', en: 'English', ger: 'German', deu: 'German', de: 'German',
-  fre: 'French', fra: 'French', fr: 'French', spa: 'Spanish', es: 'Spanish', ita: 'Italian', it: 'Italian',
-  rus: 'Russian', ru: 'Russian', tur: 'Turkish', tr: 'Turkish', fin: 'Finnish', fi: 'Finnish', swe: 'Swedish', sv: 'Swedish',
-  por: 'Portuguese', pt: 'Portuguese', hin: 'Hindi', hi: 'Hindi', kor: 'Korean', ko: 'Korean', jpn: 'Japanese', ja: 'Japanese',
-  chi: 'Chinese', zho: 'Chinese', zh: 'Chinese', dut: 'Dutch', nld: 'Dutch', nl: 'Dutch', pol: 'Polish', pl: 'Polish',
-  per: 'Persian', fas: 'Persian', fa: 'Persian', heb: 'Hebrew', he: 'Hebrew', und: 'Unknown',
-}
-
-// A plain file (an MKV, say) isn't reported through the player's own track list, but this TV's
-// browser lists its audio tracks on the video element itself.
-type NativeAudioTrack = { label?: string; language?: string; enabled: boolean }
-type NativeAudioTracks = EventTarget & { length: number; [index: number]: NativeAudioTrack }
-
-function useNativeAudio() {
-  const [, bump] = useState(0)
-  // audioTracks is missing from the DOM typings but present in this TV's browser.
-  const tracks = (document.querySelector('video') as (HTMLVideoElement & { audioTracks?: NativeAudioTracks }) | null)?.audioTracks
-  useEffect(() => {
-    if (!tracks) return
-    const update = () => bump(n => n + 1)
-    tracks.addEventListener('change', update)
-    return () => tracks.removeEventListener('change', update)
-  }, [tracks])
-  if (!tracks) return []
-  return Array.from({ length: tracks.length }, (_, i) => {
-    const t = tracks[i]
-    const language = LANGUAGES[(t.language || '').toLowerCase()] ?? (t.language || '')
-    return {
-      label: [t.label || language || `Track ${i + 1}`, t.label && language && !t.label.includes(language) ? `· ${language}` : ''].filter(Boolean).join(' '),
-      selected: t.enabled,
-      select: () => { for (let k = 0; k < tracks.length; k++) tracks[k].enabled = k === i },
-    }
-  })
-}
-
-// HLS streams (all live, some VOD) report audio/subtitle tracks through the player; for a plain
-// file the audio comes from the video element. Subtitles inside a plain file can't be read here.
-function TrackMenu({ onClose }: { onClose: () => void }) {
-  const playerAudio = useAudioOptions()
-  const nativeAudio = useNativeAudio()
-  const audio = playerAudio.length > 1 ? playerAudio : nativeAudio
-  const captions = useCaptionOptions()
-  const rows = [
-    ...(audio.length > 1 ? audio.map(option => ({ section: 'Audio', option })) : []),
-    ...(captions.length > 1 ? captions.map(option => ({ section: 'Subtitles', option })) : []),
-  ]
-  const index = useMenuKeys(rows.length, Math.max(0, rows.findIndex(r => r.option.selected)), true, i => rows[i].option.select(), onClose)
-
-  return (
-    <div className={cn(MENU, 'w-96')}>
-      {rows.length === 0 && <p className="px-4 py-3 text-base text-white/50">No alternative audio or subtitles for this stream.</p>}
-      {captions.length <= 1 && rows.length > 0 && <p className="mt-3 px-4 text-sm text-white/40">Subtitles inside this file can’t be read on this TV.</p>}
-      {rows.map(({ section, option }, i) => (
-        <div key={`${section}:${option.label}:${i}`}>
-          {(i === 0 || rows[i - 1].section !== section) && (
-            <p className={cn('mb-1 px-4 text-xs font-semibold uppercase tracking-wider text-white/40', i > 0 ? 'mt-3' : 'mt-1')}>{section}</p>
-          )}
-          <div className={cn(
-            'flex items-center justify-between rounded-full px-5 py-3 text-lg',
-            i === index ? 'bg-white font-semibold text-black' : option.selected ? 'text-[#1a98ff]' : 'text-white/80',
-          )}>
-            <span className="truncate">{option.label}</span>
-          </div>
-        </div>
-      ))}
-    </div>
   )
 }
