@@ -1,7 +1,6 @@
 import { useApp } from '../context/app-provider'
-import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { removeProgress, saveProgress, useContinueWatching, type WatchEntry } from '../utils/progress'
+import { getProgress, removeProgress, saveProgress, useContinueWatching, type WatchEntry } from '../utils/progress'
 import { getVodInfo, hasImage, vodArt } from '../utils/xtream'
 import { useActionKeys } from '../hooks/use-action-keys'
 import Poster from './poster'
@@ -36,15 +35,18 @@ function ContinueCard({ entry }: { entry: WatchEntry }) {
   // Entries saved before artwork was recorded fill themselves in from the provider.
   const missingArt = !hasImage(entry.image)
   const movieId = missingArt && entry.kind === 'movie' ? entry.id.replace('movie:', '') : undefined
-  const { data: info } = useQuery({
+  // The artwork is written back as soon as it arrives, so the entry has it from then on.
+  useQuery({
     queryKey: ['vodInfo', movieId],
-    queryFn: ({ signal }) => getVodInfo(creds!, movieId!, { signal }),
+    queryFn: async ({ signal }) => {
+      const found = await getVodInfo(creds!, movieId!, { signal })
+      const image = vodArt(found)
+      const latest = getProgress(entry.id)
+      if (image && latest) saveProgress({ ...latest, image })
+      return found
+    },
     enabled: !!movieId && !!creds,
   })
-  const art = vodArt(info)
-  useEffect(() => {
-    if (art && missingArt) saveProgress({ ...entry, image: art })
-  }, [art, missingArt, entry])
   const progress = entry.duration > 0 ? Math.min(100, (entry.position / entry.duration) * 100) : 0
 
   const keys = useActionKeys(

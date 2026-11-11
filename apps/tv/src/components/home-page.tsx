@@ -1,8 +1,11 @@
-import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
+import { startTransition, useEffect, useMemo, useState } from 'react'
 import { useIsRestoring } from '@tanstack/react-query'
 import { useCategories, useCategoryItems } from '../hooks/use-catalog'
 import { useHomeLists } from '../hooks/use-home-lists'
-import { heroId, useHeroSelection, useNewestHero, type HeroItem } from '../hooks/use-hero'
+import { decodedBackdrops, heroId, useHomeHero, type HeroItem } from '../hooks/use-hero'
+import { useInView } from '../hooks/use-in-view'
+import { useNavFocus } from '../hooks/use-nav-focus'
+import { msSinceKeyPress } from '../utils/remote-activity'
 import { usePlayItem } from '../hooks/use-play'
 import { describeError } from '../utils/http'
 import { readRow, writeRow } from '../utils/row-cache'
@@ -23,23 +26,6 @@ const SHELVES: { kind: Kind; label: string }[] = [
   { kind: 'series', label: 'TV Shows' },
 ]
 
-// One saved banner per account, with the choice of categories it was built for.
-// Banners saved by earlier versions, one per choice of categories: removed once per launch.
-let oldBannersRemoved = false
-function removeOldBanners() {
-  if (oldBannersRemoved) return
-  oldBannersRemoved = true
-  for (const k of Object.keys(localStorage)) if (k.startsWith('streambox_hero') && !k.startsWith('streambox_hero4:')) localStorage.removeItem(k)
-}
-
-function readHero(key: string, selection: string): HeroItem[] {
-  removeOldBanners()
-  try {
-    const saved = key ? JSON.parse(localStorage.getItem(key) ?? 'null') : null
-    return saved?.selection === selection && Array.isArray(saved.items) ? saved.items : []
-  } catch { return [] }
-}
-
 export default function HomePage() {
   const onSelect = usePlayItem()
   const movies = useCategories('movie')
@@ -47,58 +33,9 @@ export default function HomePage() {
   const favorites = useFavorites()
   const favoriteEntries = useMemo(() => favorites.slice(0, ROW_SIZE), [favorites])
 
-  // The hero shows the newest additions (movies and shows), built from the lists saved on the
-  // device. The very first launch has none yet, so the skeleton stays until they have downloaded.
-  const heroCategories = useHeroSelection()
+  // The banner shows the newest additions (movies and shows) of the chosen categories.
   const homeLists = useHomeLists()
-  const selectionKey = heroCategories?.join(',') ?? ''
-  const newest = useNewestHero(heroCategories)
-  const freshHero = useMemo<HeroItem[]>(() => newest.data ?? [], [newest.data])
-  // Last launch's hero shows immediately while the real list is still loading;
-  // it is only swapped once the fresh list actually differs.
-  const { creds } = useApp()
-  const heroKey = creds && heroCategories ? `streambox_hero4:${creds.base}:${creds.username}` : ''
-  const cachedHero = useMemo(() => readHero(heroKey, selectionKey), [heroKey, selectionKey])
-  const wantedHero = useMemo(() => {
-    if (!freshHero.length) return cachedHero
-    const same = freshHero.length === cachedHero.length && freshHero.every((it, i) => heroId(it) === heroId(cachedHero[i]))
-    return same ? cachedHero : freshHero
-  }, [freshHero, cachedHero])
-  // A new banner replaces the one on screen only after its first backdrop (up to 4K) has been
-  // downloaded and decoded, and while the remote is quiet: painting it cold would stall the next key press.
-  const [heroItems, setHeroItems] = useState(wantedHero)
-  if (!heroItems.length && wantedHero.length) setHeroItems(wantedHero) // nothing on screen yet: no reason to wait
-  const lastKey = useRef(0)
-  useEffect(() => {
-    const note = () => { lastKey.current = Date.now() }
-    window.addEventListener('keydown', note, true)
-    return () => window.removeEventListener('keydown', note, true)
-  }, [])
-  useEffect(() => {
-    if (wantedHero === heroItems || !heroItems.length) return
-    const url = firstImageUrl(wantedHero[0]?.backdrop_path)
-    let cancelled = false
-    let timer = 0
-    const apply = () => {
-      if (cancelled) return
-      const wait = 1500 - (Date.now() - lastKey.current)
-      if (wait > 0) { timer = window.setTimeout(apply, wait); return }
-      startTransition(() => setHeroItems(wantedHero))
-    }
-    if (url) {
-      const img = new Image()
-      img.src = url
-      img.decode().then(apply, apply) // a failed image shouldn't keep the old banner forever
-    } else {
-      timer = window.setTimeout(apply, 0)
-    }
-    return () => { cancelled = true; window.clearTimeout(timer) }
-  }, [wantedHero, heroItems])
-  useEffect(() => {
-    if (heroKey && freshHero.length) {
-      try { localStorage.setItem(heroKey, JSON.stringify({ selection: selectionKey, items: freshHero })) } catch { /* storage full: next launch just waits */ }
-    }
-  }, [heroKey, selectionKey, freshHero])
+  const { items: heroItems, none: noBanner } = useHomeHero()
 
   const categoriesByKind: Partial<Record<Kind, Category[]>> = {
     movie: movies.data, series: series.data,
@@ -113,13 +50,13 @@ export default function HomePage() {
   const retry = () => { movies.refetch(); series.refetch() }
   // Nothing to show up there: the chosen categories have no titles, or the whole page is empty.
   const empty = !loading && SHELVES.every(s => !categoriesByKind[s.kind]?.length)
-  const noHero = (newest.isSuccess && newest.data?.length === 0) || empty
+  const noHero = noBanner || empty
 
   // Full-width page (-ml-28 cancels the layout's rail gutter) so the hero can run
   // behind the pill; rows and hero text add the gutter back as padding.
   return (
     <FocusScope focusWhen={!loading} className="-ml-28 min-h-screen overflow-x-hidden pb-20">
-      {heroItems.length > 0 ? <Hero items={heroItems} onSelect={onSelect} /> : !noHero && <HeroSkeleton />}
+      {heroItems.length > 0 ? <Hero key={heroId(heroItems[0])} items={heroItems} onSelect={onSelect} /> : !noHero && <HeroSkeleton />}
 
       <div className="space-y-2" style={{ paddingTop: heroItems.length || !noHero ? 16 : 40 }}>
         {!empty && (
@@ -147,26 +84,15 @@ export default function HomePage() {
   )
 }
 
-// A row that only fetches its category once it scrolls near the viewport.
+// One row of Home: a category's first titles.
 function Shelf({ kind, label, category, onSelect }: {
   kind: Kind
   label: string
   category: Category
   onSelect: (kind: Kind, item: Item) => void
 }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [near, setNear] = useState(false)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el || near) return
-    const observer = new IntersectionObserver(
-      entries => { if (entries[0].isIntersecting) setNear(true) },
-      { rootMargin: '600px 0px' },
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [near])
+  // Only fetches its category once it scrolls near the viewport.
+  const [ref, near] = useInView<HTMLDivElement>({ rootMargin: '600px 0px', once: true })
 
   // Saved copy of this row: shown straight away, and the fetch is skipped while it is newer than the refresh interval.
   const { creds } = useApp()
@@ -175,7 +101,7 @@ function Shelf({ kind, label, category, onSelect }: {
     const row = readRow(rowKey)
     const minutes = getSettings().refreshMinutes
     return { saved: row, due: !row || (minutes !== 0 && Date.now() - row.t > minutes * 60_000) }
-  })
+  }) // read once, when the row appears; the initializer is where React lets a component read the clock
 
   const { data } = useCategoryItems(kind, near && due ? category.category_id : null)
   useEffect(() => {
@@ -195,9 +121,10 @@ function Shelf({ kind, label, category, onSelect }: {
 }
 
 const HERO_BOX = 'h-[64vh] min-h-[420px]'
-const decoded = new Set<string>()
 const MAX_SLIDES = 10
 const QUIET_MS = 2500 // the banner waits this long after the last key press before changing
+// A movie slide whose backdrop is its own poster (its details have none, or haven't arrived yet).
+const posterOnly = (slide: HeroItem) => !!slide.stream_icon && firstImageUrl(slide.backdrop_path) === slide.stream_icon
 const PREFETCH_AHEAD = 2 // slides whose artwork is requested before it is needed (only the next one is mounted)
 
 // Same footprint as the real hero, so nothing jumps when it arrives.
@@ -240,70 +167,38 @@ function RowSkeletons() {
   return <><RowSkeleton /><RowSkeleton /></>
 }
 
+// Remounted (by `key`) whenever the banner's first title changes, so a new banner starts from its first slide.
 function Hero({ items, onSelect }: { items: HeroItem[]; onSelect: (kind: Kind, item: Item) => void }) {
   const slides = useMemo(() => items.slice(0, MAX_SLIDES), [items])
-  const [index, setIndex] = useState(0)
+  // A banner still being built can lose a slide: stay inside it.
+  const [at, setIndex] = useState(0)
+  const index = Math.min(at, slides.length - 1)
   // The slow crossfade is for the automatic change; a press of the arrow should answer at once.
   const [quick, setQuick] = useState(false)
   // Text and buttons show straight away; only the artwork waits to be decoded, then fades in.
-  // Backdrops already decoded this session show at once when the page is revisited.
-  const [ready, setReady] = useState(() => decoded.has(firstImageUrl(items[0].backdrop_path)!))
-
-  // Decode the first backdrop before revealing the hero.
-  useEffect(() => {
-    let cancelled = false
-    // Only the first backdrop gates the reveal; fetching the others alongside it
-    // would just slow it down.
-    const first = new Image()
-    first.src = firstImageUrl(slides[0].backdrop_path)!
-    const revealed = () => {
-      if (cancelled) return
-      decoded.add(firstImageUrl(slides[0].backdrop_path)!)
-      setReady(true)
-    }
-    first.decode().then(revealed, revealed) // a failed image shouldn't leave the skeleton forever
-    return () => { cancelled = true }
-  }, [slides])
+  // Backdrops already decoded this session show at once when the page is revisited. The first backdrop
+  // gates the reveal (the others would only slow it down): its own <img> tells us when it has loaded.
+  const firstUrl = firstImageUrl(slides[0].backdrop_path)
+  const [ready, setReady] = useState(() => !firstUrl || decodedBackdrops.has(firstUrl))
+  const reveal = () => {
+    if (firstUrl) decodedBackdrops.add(firstUrl)
+    setReady(true)
+  }
 
   // Rotate only while the hero is actually on screen (not scrolled past, not in the background).
-  const box = useRef<HTMLDivElement>(null)
-  // Only while the hero is on screen do its backdrops get their own layers: measured on the TV, that
+  // Only while it is on screen do its backdrops get their own layers: measured on the TV, that
   // takes the crossfade from ~25 to ~55 frames per second, and off screen it would just hold memory.
-  const [onScreen, setOnScreen] = useState(false)
-  useEffect(() => {
-    const el = box.current
-    if (!el) return
-    const observer = new IntersectionObserver(entries => setOnScreen(entries[0].isIntersecting), { threshold: 0.2 })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
+  const [box, onScreen] = useInView<HTMLDivElement>({ threshold: 0.2 })
   // The banner holds still while the menu has focus: nobody is watching it then, and the menu's
   // own animation gets the whole frame budget.
-  const [inMenu, setInMenu] = useState(false)
-  useEffect(() => {
-    const track = () => setInMenu(!!document.activeElement?.closest('[data-nav]'))
-    document.addEventListener('focusin', track)
-    document.addEventListener('focusout', track)
-    return () => {
-      document.removeEventListener('focusin', track)
-      document.removeEventListener('focusout', track)
-    }
-  }, [])
-  // The banner never changes under the user's fingers: a slide change repaints a full-screen image, which
-  // would stall the next key press. Remote activity pushes the change back until the remote has been quiet.
-  const lastKey = useRef(0)
-  useEffect(() => {
-    const note = () => { lastKey.current = Date.now() }
-    window.addEventListener('keydown', note, true)
-    return () => window.removeEventListener('keydown', note, true)
-  }, [])
+  const inMenu = useNavFocus()
   // One timeout per slide: it restarts whenever the slide changes, by itself or by the arrow button.
   useEffect(() => {
     if (!onScreen || inMenu || slides.length < 2) return
     let timer = 0
     const arm = (ms: number) => {
       timer = window.setTimeout(() => {
-        const wait = QUIET_MS - (Date.now() - lastKey.current)
+        const wait = QUIET_MS - msSinceKeyPress()
         if (wait > 0) return arm(wait)
         // Low priority: React can drop it for a pending key press.
         startTransition(() => { setQuick(false); setIndex(i => (i + 1) % slides.length) })
@@ -334,22 +229,39 @@ function Hero({ items, onSelect }: { items: HeroItem[]; onSelect: (kind: Kind, i
     return ahead <= 1 || ahead === slides.length - 1
   }
 
+  const fade = (i: number) => `transition-opacity ${quick ? 'duration-150' : 'duration-1000'} ${onScreen ? 'will-change-[opacity]' : ''} ${ready && i === index ? 'opacity-100' : i === (index + 1) % slides.length ? 'opacity-[0.01]' : 'opacity-0'}`
+
   const hero = slides[index]
   const rating = Number(hero.rating)
 
   return (
     <FocusScope focusWhen={false} preferredChildFocusKey="hero-watch" rememberChild={false}>
     <div ref={box} className={`relative ${HERO_BOX} overflow-hidden bg-[#111418]`}>
+      {/* Each slide is one layer that fades as a whole: its picture, the fade at its foot and, for a film
+          with no backdrop, its poster. Such a film has the poster stretched across the banner, which shows
+          only a soft strip of it, so the poster itself also stands in the middle of the space right of the
+          text, a little taller than the banner (its foot is cut off). It sits over the bottom fade, which
+          would hide a third of it, and under the side one; a shorter fade of its own covers where it is cut. */}
       {slides.map((slide, i) => isNear(i) && (
-        <img
-          key={heroId(slide)}
-          src={firstImageUrl(slide.backdrop_path)}
-          alt=""
-          className={`absolute inset-0 size-full object-cover object-top transition-opacity ${quick ? 'duration-150' : 'duration-1000'} ${onScreen ? 'will-change-[opacity]' : ''} ${ready && i === index ? 'opacity-100' : i === (index + 1) % slides.length ? 'opacity-[0.01]' : 'opacity-0'}`}
-        />
+        <div key={heroId(slide)} className={`absolute inset-0 ${fade(i)}`}>
+          <img
+            src={firstImageUrl(slide.backdrop_path)}
+            alt=""
+            // A failed picture shouldn't leave the first one waiting forever; a loaded one is decoded before it fades in.
+            onLoad={i === 0 ? e => { e.currentTarget.decode().then(reveal, reveal) } : undefined}
+            onError={i === 0 ? reveal : undefined}
+            className="absolute inset-0 size-full object-cover object-top"
+          />
+          <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#050607] to-transparent" />
+          {posterOnly(slide) && (
+            <>
+              <img src={slide.stream_icon} alt="" className="absolute left-[72%] top-0 h-[118%] w-auto max-w-none -translate-x-1/2" />
+              <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-[#050607] to-transparent" />
+            </>
+          )}
+        </div>
       ))}
       <div className="absolute inset-0 bg-gradient-to-r from-[#050607] via-[#050607]/60 to-black/25" />
-      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#050607] to-transparent" />
 
       <div className="absolute bottom-16 left-28 max-w-2xl">
         <div className="mb-3 flex items-center gap-3 text-sm font-semibold text-gray-200">

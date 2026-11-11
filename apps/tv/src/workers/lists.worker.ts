@@ -3,37 +3,20 @@
 // off the main thread; the page only ever receives the slice it asks for
 // (one category, or the matches of a search).
 import { sorters, type SortId } from '../utils/sort'
-import type { Item } from '../utils/xtream'
+import { pickNewest, slimShow } from '../utils/newest'
+import type { Item, Kind } from '../utils/xtream'
 
 const MAX_RESULTS = 1000
 const KEEP_MS = 10 * 60_000 // drop the in-memory copy once idle; the saved one stays
 
 type Entry = { updatedAt: number; items: Item[]; v?: number }
 
-// Saved lists keep only what the app reads from them. Series entries carry the full
-// plot, cast, director and every backdrop (~1.5 KB each, 22 MB for the section); the
-// grids and the home hero need a fraction of that, and the show page loads the rest
-// itself. Bump when the kept fields change: older saved copies are slimmed on load.
+// Saved lists keep only what the app reads from them (see slimShow; the series section is 22 MB
+// as sent). Bump when the kept fields change: older saved copies are slimmed on load.
 const LIST_VERSION = 2
 const kindOf = (key: string) => key.split('|').pop()
 
-function slim(key: string, items: Item[]): Item[] {
-  if (kindOf(key) !== 'series') return items
-  return items.map(s => ({
-    series_id: s.series_id,
-    name: s.name,
-    cover: s.cover,
-    rating: s.rating,
-    releaseDate: s.releaseDate,
-    category_id: s.category_id,
-    genre: s.genre,
-    plot: s.plot ? s.plot.slice(0, 300) : s.plot,
-    // the hero shows only the first backdrop
-    backdrop_path: Array.isArray(s.backdrop_path) ? s.backdrop_path.slice(0, 1) : s.backdrop_path,
-    // series carry no `added`; their last update drives "Recently added"
-    added: (s as Item & { last_modified?: string }).last_modified ?? s.added,
-  }))
-}
+const slim = (key: string, items: Item[]): Item[] => (kindOf(key) === 'series' ? items.map(slimShow) : items)
 type Request = {
   id: number
   op: 'category' | 'sync' | 'search' | 'newest' | 'clear'
@@ -137,19 +120,8 @@ self.onmessage = async (event: MessageEvent<Request>) => {
     } else if (op === 'sync') {
       reply({ id, ...(await sync(key, url!, maxAge ?? 0, !!force)) })
     } else if (op === 'newest') {
-      // The most recently added titles, from the chosen categories (or from everything). Shows need a
-      // backdrop. With no categories chosen a rating is also required, which keeps out entries with no
-      // metadata at all; an explicit choice is trusted.
       const entry = await have(key)
-      const chosen = categoryIds && categoryIds.length ? new Set(categoryIds) : null
-      const picked = entry
-        ? entry.items
-          .filter(i => (chosen ? chosen.has(String(i.category_id)) : Number(i.rating) > 0)
-            && Number(i.added) > 0
-            && (kindOf(key) !== 'series' || (Array.isArray(i.backdrop_path) ? i.backdrop_path.length > 0 : !!i.backdrop_path)))
-          .sort((a, b) => Number(b.added) - Number(a.added))
-          .slice(0, count ?? 8)
-        : null
+      const picked = entry ? pickNewest(entry.items, kindOf(key) as Kind, count ?? 8, categoryIds) : null
       reply({ id, items: picked })
     } else if (op === 'category') {
       // Only what is already on hand: no download, so the page can fall back to the small per-category request.
