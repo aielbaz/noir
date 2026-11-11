@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import type { MediaPlayerInstance } from '@vidstack/react'
 import { useBackHandler } from './use-back-handler'
 
-// Seeking never touches the video while keys are down: presses and holds only move a "scrub" position
+// Seeking with the arrows never touches the video while keys are down: presses and holds only move a "scrub" position
 // (shown on the bar), and one real seek happens once the user has had time to change their mind, so the
 // stream loads once, not per step. Until then Back cancels it and OK confirms it at once.
 //
@@ -21,6 +21,9 @@ const holdStep = (heldMs: number, duration: number) => {
   const step = TAP_STEP * Math.pow(1.75, heldMs / 1000)
   return Math.min(step, Math.max(120, duration / 15))
 }
+
+// Kept out of the hook: the compiler reads an assignment to the player there as changing a prop.
+const jumpTo = (p: MediaPlayerInstance, time: number) => { p.currentTime = time }
 
 export function useSeek(player: RefObject<MediaPlayerInstance | null>, { enabled, canSeek }: {
   enabled: boolean // false for live TV
@@ -88,18 +91,27 @@ export function useSeek(player: RefObject<MediaPlayerInstance | null>, { enabled
     return true
   }, 3)
 
-  // The rewind / fast-forward keys: the same staged jump as the arrows.
-  const by = useCallback((delta: number) => { stage(delta); commit() }, [stage, commit])
-  // The 10-second buttons: pressing one is already a decision, so the jump goes out at once.
-  const jump = useCallback((delta: number) => { stage(delta); commit(0) }, [stage, commit])
-
-  // A click on the bar.
-  const to = useCallback((target: number) => {
+  // Everything but the arrows jumps straight away, with nothing staged and nothing to confirm or cancel:
+  // the 10-second buttons, the rewind / fast-forward keys and a click on the bar are already a decision.
+  // While such a jump is still loading, the next one starts from where it was going, so presses add up.
+  const direct = useRef<number | null>(null)
+  const directTimer = useRef(0)
+  const go = useCallback((target: (from: number) => number) => {
     const p = player.current
-    if (!p || !enabled || !Number.isFinite(p.duration)) return
-    stage(target - (targetRef.current ?? p.currentTime))
-    commit()
-  }, [player, enabled, stage, commit])
+    if (!p || !enabled || !canSeek()) return
+    if (targetRef.current != null) end() // an arrow seek still waiting is dropped
+    const from = direct.current ?? p.currentTime
+    const limit = Number.isFinite(p.duration) ? Math.max(p.duration - END_MARGIN, from) : Infinity
+    direct.current = Math.min(limit, Math.max(0, target(from)))
+    jumpTo(p, direct.current)
+    setEnded(n => n + 1) // the bar places its knob there instead of sliding to it
+    window.clearTimeout(directTimer.current)
+    directTimer.current = window.setTimeout(() => { direct.current = null }, LANDING_MS)
+  }, [player, enabled, canSeek, end])
+  useEffect(() => () => window.clearTimeout(directTimer.current), [])
+
+  const by = useCallback((delta: number) => go(from => from + delta), [go])
+  const to = useCallback((target: number) => go(() => target), [go])
 
   // An arrow pressed or auto-repeating.
   const holdKey = useCallback((direction: 1 | -1, e: KeyboardEvent) => {
@@ -133,7 +145,8 @@ export function useSeek(player: RefObject<MediaPlayerInstance | null>, { enabled
   const landed = useCallback(() => {
     const p = player.current
     if (targetRef.current != null && p && Math.abs(p.currentTime - targetRef.current) < 3) end()
+    if (direct.current != null && p && Math.abs(p.currentTime - direct.current) < 3) direct.current = null
   }, [player, end])
 
-  return { scrub, scrubFrom, sent, ended, by, jump, to, hold: holdKey, release, confirmNow, landed }
+  return { scrub, scrubFrom, sent, ended, by, to, hold: holdKey, release, confirmNow, landed }
 }
