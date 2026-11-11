@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.2](https://github.com/aielbaz/noir/compare/v1.0.1...v1.0.2) (2026-11-11)
+
+
+### Bug Fixes
+
+* **catalog:** Up from the top row always goes to the sort button ([53fe762](https://github.com/aielbaz/noir/commit/53fe7627e7810ab9d8aa1b740209a51a148de50d))
+* **home:** focus Watch now as soon as the banner is shown ([977eb63](https://github.com/aielbaz/noir/commit/977eb63fd1149811b227336b34fcc0ff4955b2ef))
+* **player:** keep the remote working after the pointer was used ([b4361d8](https://github.com/aielbaz/noir/commit/b4361d8d3aa72cf42dac74838714232b4dd76b43))
+
 ## [1.0.1](https://github.com/aielbaz/noir/compare/v1.0.0...v1.0.1) (2026-11-11)
 
 
