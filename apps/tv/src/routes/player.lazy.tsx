@@ -397,7 +397,7 @@ function PlayerView({ search }: { search: PlayerSearch }) {
           </div>
         </div>
 
-        <SeekOverlay scrub={seek.scrub} from={seek.scrubFrom} sent={seek.sent} okWorks={controls.focus === BAR} />
+        <SeekOverlay scrub={seek.scrub} from={seek.scrubFrom} sent={seek.sent} okWorks={controls.focus === BAR} jumped={seek.jumped} />
 
         {exitNotice && (
           <div className="pointer-events-none absolute left-1/2 top-12 z-30 -translate-x-1/2 rounded-full bg-black/70 px-7 py-3 text-2xl font-medium text-white">

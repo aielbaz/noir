@@ -10,6 +10,7 @@ import { useBackHandler } from './use-back-handler'
 // grows the longer the key stays down (10s per quarter second -> ~50s after 3s -> ~270s after 5s). Each step
 // covers the time since the last one, so the speed doesn't depend on how fast a remote repeats keys.
 const COMMIT_DELAY_MS = 1200 // long enough to change your mind
+const JUMP_SHOWN_MS = 1200 // how long the amount of a direct jump stays on screen
 const LANDING_MS = 8000 // give up waiting for a confirmed jump to land after this long
 const END_MARGIN = 5 // seconds: seeking never lands closer than this to the end, which would end the film
 const HOLD_DELAY_MS = 450
@@ -42,6 +43,11 @@ export function useSeek(player: RefObject<MediaPlayerInstance | null>, { enabled
   const timer = useRef(0)
   const hold = useRef({ since: 0, last: 0 })
 
+  // How far a direct jump went (see `go`), for the screen to show briefly; presses made while it shows add up.
+  const [jumped, setJumped] = useState<number | null>(null)
+  const jumpedRef = useRef(0)
+  const jumpedTimer = useRef(0)
+
   const end = useCallback(() => {
     window.clearTimeout(timer.current)
     setEnded(n => n + 1)
@@ -59,6 +65,7 @@ export function useSeek(player: RefObject<MediaPlayerInstance | null>, { enabled
     sentRef.current = false // a new press makes it something that can be cancelled again
     setSent(false)
     if (targetRef.current == null) setScrubFrom(p.currentTime)
+    window.clearTimeout(jumpedTimer.current); jumpedRef.current = 0; setJumped(null) // the arrows' own display takes over
     const base = targetRef.current ?? p.currentTime
     // A jump to the very end would end the film (and autoplay the next episode): stop just short of it,
     // unless playback is already past that point, where a forward press mustn't go backwards.
@@ -104,11 +111,15 @@ export function useSeek(player: RefObject<MediaPlayerInstance | null>, { enabled
     const limit = Number.isFinite(p.duration) ? Math.max(p.duration - END_MARGIN, from) : Infinity
     direct.current = Math.min(limit, Math.max(0, target(from)))
     jumpTo(p, direct.current)
+    jumpedRef.current += direct.current - from
+    setJumped(jumpedRef.current)
+    window.clearTimeout(jumpedTimer.current)
+    jumpedTimer.current = window.setTimeout(() => { jumpedRef.current = 0; setJumped(null) }, JUMP_SHOWN_MS)
     setEnded(n => n + 1) // the bar places its knob there instead of sliding to it
     window.clearTimeout(directTimer.current)
     directTimer.current = window.setTimeout(() => { direct.current = null }, LANDING_MS)
   }, [player, enabled, canSeek, end])
-  useEffect(() => () => window.clearTimeout(directTimer.current), [])
+  useEffect(() => () => { window.clearTimeout(directTimer.current); window.clearTimeout(jumpedTimer.current) }, [])
 
   const by = useCallback((delta: number) => go(from => from + delta), [go])
   const to = useCallback((target: number) => go(() => target), [go])
@@ -148,5 +159,5 @@ export function useSeek(player: RefObject<MediaPlayerInstance | null>, { enabled
     if (direct.current != null && p && Math.abs(p.currentTime - direct.current) < 3) direct.current = null
   }, [player, end])
 
-  return { scrub, scrubFrom, sent, ended, by, to, hold: holdKey, release, confirmNow, landed }
+  return { scrub, scrubFrom, sent, ended, jumped, by, to, hold: holdKey, release, confirmNow, landed }
 }
