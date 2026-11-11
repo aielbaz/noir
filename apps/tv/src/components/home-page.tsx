@@ -55,7 +55,8 @@ export default function HomePage() {
   // Full-width page (-ml-28 cancels the layout's rail gutter) so the hero can run
   // behind the pill; rows and hero text add the gutter back as padding.
   return (
-    <FocusScope focusWhen={!loading} className="-ml-28 min-h-screen overflow-x-hidden pb-20">
+    // Last launch's banner is on screen before the lists are: focus its button then, not a second later.
+    <FocusScope focusWhen={!loading || heroItems.length > 0} className="-ml-28 min-h-screen overflow-x-hidden pb-20">
       {heroItems.length > 0 ? <Hero key={heroId(heroItems[0])} items={heroItems} onSelect={onSelect} /> : !noHero && <HeroSkeleton />}
 
       <div className="space-y-2" style={{ paddingTop: heroItems.length || !noHero ? 16 : 40 }}>
