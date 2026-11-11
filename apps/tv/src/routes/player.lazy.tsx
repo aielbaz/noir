@@ -181,8 +181,9 @@ function PlayerView({ search }: { search: PlayerSearch }) {
     const onKey = (e: KeyboardEvent) => {
       if (isPanelOpen()) return
       // Focused buttons (error overlay): the spatial-navigation library swallows
-      // OK before the browser can click them, so click them here.
-      if (e.target instanceof HTMLButtonElement) {
+      // OK before the browser can click them, so click them here. Only there: a control button
+      // that somehow holds DOM focus must not take the keys away from the controls' own focus.
+      if (e.target instanceof HTMLButtonElement && e.target.closest('[data-error-actions]')) {
         if (e.keyCode === KEY.enter) e.target.click()
         // Nothing else moves DOM focus here, so step between sibling buttons ourselves.
         else if (e.keyCode === KEY.left || e.keyCode === KEY.right) {
@@ -198,7 +199,9 @@ function PlayerView({ search }: { search: PlayerSearch }) {
       switch (e.keyCode) {
         case KEY.enter:
           if (isLive) { if (isAwake() || p.paused) togglePlay() } // hidden overlay: OK only brings it up (every handled key does)
-          // Controls away: OK plays or pauses, and the controls that come up have the play button focused.
+          // Paused with the controls put away: OK just resumes, and they stay away.
+          else if (!isVisible() && p.paused) { p.play(); return e.preventDefault() }
+          // Controls away while playing: OK pauses, and the controls that come up have the play button focused.
           else if (!isVisible()) { togglePlay(); moveFocus(PLAY_BUTTON) }
           // With the controls showing, OK does what the focused control does; on the bar, nothing.
           else if (focus === TIME_LABEL) toggleRemaining()
@@ -292,6 +295,10 @@ function PlayerView({ search }: { search: PlayerSearch }) {
         ref={player}
         src={src}
         autoPlay
+        // The remote is handled here. The library's own shortcuts wake up once anything inside the
+        // player holds DOM focus (the TV puts it on a control after the pointer was used) and then
+        // swallow every key before it reaches this page.
+        keyDisabled
         // The TV plays HLS natively and quickly; through hls.js its MSE never reports
         // the appended data, so live streams sat frozen for ~40 s.
         preferNativeHLS
@@ -319,7 +326,8 @@ function PlayerView({ search }: { search: PlayerSearch }) {
         {!health.error && <Spinner reconnecting={health.reconnecting} retry={health.retries} onStall={() => health.fail('Playback stalled.')} />}
 
         {/* Title + controls: one layer that fades in on activity and out after a few seconds. */}
-        <div className={cn('absolute inset-0 transition-opacity duration-300', visible ? 'opacity-100' : 'pointer-events-none opacity-0')}>
+        {/* A pointer click must not leave DOM focus on a control: the remote's keys drive `controls.focus`, not the browser's focus. */}
+        <div onMouseDown={e => e.preventDefault()} className={cn('absolute inset-0 transition-opacity duration-300', visible ? 'opacity-100' : 'pointer-events-none opacity-0')}>
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[26rem] bg-gradient-to-t from-black/90 via-black/60 to-transparent" />
 
           <div className="absolute inset-x-0 bottom-0 px-16 pb-12">
